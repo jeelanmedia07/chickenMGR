@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KCC Admin Dashboard - Kadir Chicken Center</title>
+    <meta name="theme-color" content="#065f46">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; margin: 0; padding-bottom: 50px; color: #1e293b; }
+        header { background: #065f46; color: white; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(6,95,70,0.2); }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-logo { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #a7f3d0; background: #ffffff; }
+        .header-brand h2 { margin: 0; font-size: 17px; font-weight: 700; color: #ffffff; line-height: 1.2; }
+        .header-brand p { margin: 2px 0 0 0; font-size: 11px; color: #a7f3d0; }
+        .main-layout { display: flex; flex-direction: column; gap: 16px; padding: 16px; max-width: 1200px; margin: auto; }
+        @media (min-width: 768px) { .main-layout { display: grid; grid-template-columns: 360px 1fr; align-items: start; } }
+        .sidebar-panel, .content-panel { display: flex; flex-direction: column; gap: 14px; }
+        .card { background: #ffffff; border-radius: 14px; padding: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .sound-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .sound-banner p { margin: 0; font-size: 12px; font-weight: 600; color: #1e40af; }
+        .sound-btn { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .control-card { display: flex; justify-content: space-between; align-items: center; }
+        .control-info h3 { margin: 0 0 2px 0; font-size: 15px; color: #1e293b; font-weight: 700; }
+        .control-info p { margin: 0; font-size: 11.5px; color: #64748b; }
+        .toggle-btn { padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+        .btn-open { background: #10b981; color: white; }
+        .btn-closed { background: #ef4444; color: white; }
+        .rates-card h3 { margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 700; }
+        .rate-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #334155; font-weight: 600; }
+        .rate-row input { width: 90px; padding: 6px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; background: #f8fafc; font-weight: 700; color: #059669; outline: none; }
+        .save-rates-btn { background: #059669; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; cursor: pointer; width: 100%; margin-top: 8px; }
+        .filter-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .filter-bar label { font-size: 13px; font-weight: 700; color: #1e293b; }
+        .filter-bar input { padding: 6px 10px; font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-weight: 600; color: #334155; background: #f8fafc; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 10px; text-align: center; }
+        .stat-box span { font-size: 11px; color: #64748b; font-weight: 600; display: block; }
+        .stat-box h4 { margin: 4px 0 0 0; font-size: 16px; color: #0f172a; font-weight: 700; }
+        #adminOrdersContainer { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 1024px) { #adminOrdersContainer { grid-template-columns: 1fr 1fr; } }
+        .order-card { background: #ffffff; border-radius: 12px; padding: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; }
+        .token-tag { font-size: 15px; font-weight: 700; color: #059669; }
+        .order-type-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #e0f2fe; color: #0369a1; }
+        .order-details p { margin: 5px 0; font-size: 12.5px; color: #334155; }
+        .order-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+        .action-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; color: white; }
+        .btn-accept { background: #059669; }
+        .btn-ready { background: #d97706; }
+        .btn-done { background: #64748b; }
+        .btn-whatsapp { background: #25d366; color: white; width: 100%; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; }
+        .refresh-btn-hdr { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body onload="initDashboard()">
+
+    <header>
+        <div class="header-left">
+            <img src="logo mgr.png" alt="Logo" class="header-logo">
+            <div class="header-brand">
+                <h2>ChickenMGR POS Dashboard</h2>
+                <p>Kadir Chicken Center - Baramati</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="refresh-btn-hdr" onclick="loadAdminData()">🔄 Refresh</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <div class="sidebar-panel">
+            <div class="sound-banner" id="soundBanner">
+                <p>🔊 Voice Alert Enable karein</p>
+                <button class="sound-btn" onclick="enableAudioAlerts()">Enable Audio</button>
+            </div>
+
+            <div class="card control-card">
+                <div class="control-info">
+                    <h3>Dukan Status</h3>
+                    <p id="shopStatusSubtext">Customers ko status dikh raha hai</p>
+                </div>
+                <button id="shopToggleBtn" class="toggle-btn btn-open" onclick="toggleShopStatus()">🟢 OPEN</button>
+            </div>
+
+            <div class="card" style="padding: 12px 16px;">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span>Total Orders</span>
+                        <h4 id="statTotalOrders">0</h4>
+                    </div>
+                    <div class="stat-box">
+                        <span>Total Revenue</span>
+                        <h4 id="statTotalRevenue">₹0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card rates-card">
+                <h3>Live Rate Manager</h3>
+                <div class="rate-row"><span>Fresh Chicken:</span><input type="number" id="rate_curry" value="220"> ₹</div>
+                <div class="rate-row"><span>Chicken Leg Piece:</span><input type="number" id="rate_leg" value="280"> ₹</div>
+                <div class="rate-row"><span>Chicken Boneless:</span><input type="number" id="rate_boneless" value="340"> ₹</div>
+                <div class="rate-row"><span>Liver / Kaleji:</span><input type="number" id="rate_liver" value="200"> ₹</div>
+                <button class="save-rates-btn" onclick="saveProductRates()">Update Rates in Customer App 💾</button>
+            </div>
+        </div>
+
+        <div class="content-panel">
+            <div class="card filter-bar">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="orderDateFilter">📅 Date: </label>
+                    <input type="date" id="orderDateFilter" onchange="renderAdminOrders()">
+                    <button onclick="toggleDateFilterMode()" id="filterModeBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🔍 Filter by Date (Off)</button>
+                </div>
+                <div id="orderCountBadge" style="font-size: 12px; background: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700;">0 Orders</div>
+            </div>
+
+            <div id="adminOrdersContainer">
+                <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Google Sheet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwD02hcV-R7q-vVA_72KZ7Hh-2yIgLZk2FyNrcK52u08d6AGnVPFWeliVtzhPokIwUmPw/exec";
+        let audioEnabled = false;
+        let cachedOrders = [];
+        let currentShopOpen = "true";
+        let isDateFilteringActive = false; // Default off so all orders show clearly first
+
+        function saveProductRates() {
+            syncSettingsToCloud(true);
+        }
+
+        function initDashboard() {
+            let today = new Date().toISOString().split('T')[0];
+            let dateInput = document.getElementById('orderDateFilter');
+            if (!dateInput.value) dateInput.value = today;
+            
+            loadAdminData();
+
+            setInterval(() => {
+                loadAdminData(true);
+            }, 8000);
+        }
+
+        function enableAudioAlerts() {
+            audioEnabled = true;
+            document.getElementById('soundBanner').style.display = 'none';
+        }
+
+        function toggleDateFilterMode() {
+            isDateFilteringActive = !isDateFilteringActive;
+            let btn = document.getElementById('filterModeBtn');
+            if (isDateFilteringActive) {
+                btn.style.background = "#059669";
+                btn.innerText = "🔍 Filter by Date (On)";
+            } else {
+                btn.style.background = "#0284c7";
+                btn.innerText = "🔍 Filter by Date (Off)";
+            }
+            renderAdminOrders();
+        }
+
+        function loadAdminData(isBackground = false) {
+            fetch(SCRIPT_URL + "?action=getSettings")
+            .then(res => res.json())
+            .then(settings => {
+                currentShopOpen = settings.shopOpen !== undefined ? settings.shopOpen : "true";
+                let toggleBtn = document.getElementById('shopToggleBtn');
+                let subtext = document.getElementById('shopStatusSubtext');
+
+                if (currentShopOpen === "false") {
+                    toggleBtn.className = "toggle-btn btn-closed";
+                    toggleBtn.innerText = "🔴 CLOSED";
+                    subtext.innerText = "Dukan abhi band hai";
+                } else {
+                    toggleBtn.className = "toggle-btn btn-open";
+                    toggleBtn.innerText = "🟢 OPEN";
+                    subtext.innerText = "Dukan chalu hai";
+                }
+
+                if (settings.rates) {
+                    document.getElementById('rate_curry').value = settings.rates.curry || 220;
+                    document.getElementById('rate_leg').value = settings.rates.leg || 280;
+                    document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
+                    document.getElementById('rate_liver').value = settings.rates.liver || 200;
+                }
+            }).catch(err => console.log("Settings fetch error", err));
+
+            fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    if (isBackground && data.length > cachedOrders.length && cachedOrders.length > 0) {
+                        if (audioEnabled && 'speechSynthesis' in window) {
+                            let utterance = new SpeechSynthesisUtterance("Naya order aaya hai!");
+                            utterance.lang = 'hi-IN';
+                            window.speechSynthesis.speak(utterance);
+                        }
+                    }
+                    cachedOrders = data;
+                    renderAdminOrders();
+                } else {
+                    document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Error: Sheet data format invalid.</p>`;
+                }
+            })
+            .catch(err => {
+                console.log("Failed to fetch sheet orders", err);
+                if (!isBackground) {
+                    document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Connection Error! Check internet or URL.</p>`;
+                }
+            });
+        }
+
+        function toggleShopStatus() {
+            currentShopOpen = (currentShopOpen === "true" || currentShopOpen === true) ? "false" : "true";
+            
+            let toggleBtn = document.getElementById('shopToggleBtn');
+            let subtext = document.getElementById('shopStatusSubtext');
+
+            if (currentShopOpen === "false") {
+                toggleBtn.className = "toggle-btn btn-closed";
+                toggleBtn.innerText = "🔴 CLOSED";
+                subtext.innerText = "Dukan abhi band hai";
+            } else {
+                toggleBtn.className = "toggle-btn btn-open";
+                toggleBtn.innerText = "🟢 OPEN";
+                subtext.innerText = "Dukan chalu hai";
+            }
+            
+            let payload = {
+                action: "updateSettings",
+                shopOpen: currentShopOpen
+            };
+
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).catch(err => console.log("Error updating status:", err));
+        }
+
+        function syncSettingsToCloud(showAlert = true) {
+            let curry = document.getElementById('rate_curry').value;
+            let leg = document.getElementById('rate_leg').value;
+            let boneless = document.getElementById('rate_boneless').value;
+            let liver = document.getElementById('rate_liver').value;
+
+            let targetUrl = `${SCRIPT_URL}?action=updateSettings&shopOpen=${currentShopOpen}&curry=${curry}&leg=${leg}&boneless=${boneless}&liver=${liver}`;
+
+            fetch(targetUrl, { mode: 'no-cors' }).catch(err => console.log(err));
+
+            if (showAlert) {
+                alert("Rates successfully updated in Cloud & Customer App!");
+            }
+        }   
+
+        function renderAdminOrders() {
+            let container = document.getElementById('adminOrdersContainer');
+            container.innerHTML = "";
+
+            let selectedDate = document.getElementById('orderDateFilter').value; // e.g. "2026-09-17"
+
+            let filteredOrders = cachedOrders.filter(order => {
+                if (!isDateFilteringActive) return true; // Show all when filter is off
+                
+                let orderTimeStr = order.Time || order.time || "";
+                
+                // If the stored time contains the exact selected date string (YYYY-MM-DD)
+                if (orderTimeStr.includes(selectedDate)) return true;
+
+                // Handle Google Sheet old timestamp format mismatch if any
+                try {
+                    let d = new Date(orderTimeStr);
+                    if (!isNaN(d.getTime())) {
+                        let formattedD = d.toISOString().split('T')[0];
+                        if (formattedD === selectedDate) return true;
+                    }
+                } catch(e) {}
+
+                return false;
+            });
+
+            filteredOrders.reverse();
+
+            document.getElementById('orderCountBadge').innerText = `${filteredOrders.length} Orders`;
+            document.getElementById('statTotalOrders').innerText = filteredOrders.length;
+
+            let totalRev = filteredOrders.reduce((sum, ord) => sum + (parseFloat(ord.TotalAmount || ord.totalAmount) || 0), 0);
+            document.getElementById('statTotalRevenue').innerText = `₹${totalRev}`;
+
+            if (filteredOrders.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Is date par koi order nahi mila.</p>`;
+                return;
+            }
+
+            filteredOrders.forEach((order) => {
+                let token = order.Token || order.token || "MB-000";
+                let cName = order.CustomerName || order.customerName || "Customer";
+                let phone = order.Phone || order.phone || "";
+                let items = order.Items || order.items || "";
+                let amount = order.TotalAmount || order.totalAmount || 0;
+                let time = order.Time || order.time || "";
+                let address = order.Address || order.address || "Pickup";
+                let orderType = order.OrderType || order.orderType || "Pickup";
+                let status = order.Status || order.status || 'Pending';
+
+                let isCompleted = (status === 'Completed');
+
+                let card = document.createElement('div');
+                card.className = 'order-card';
+                
+                let actionsHTML = '';
+                if (isCompleted) {
+                    actionsHTML = `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 8px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 13px; margin-top: 10px;">✅ Order Completed</div>`;
+                } else {
+                    actionsHTML = `
+                        <div class="order-actions">
+                            <button class="action-btn btn-accept" onclick="updateOrderStatus('${token}', 'Accepted')">Accept</button>
+                            <button class="action-btn btn-ready" onclick="updateOrderStatus('${token}', 'Ready 🚀')">Ready</button>
+                            <button class="action-btn btn-done" onclick="updateOrderStatus('${token}', 'Completed')">Done</button>
+                        </div>
+                        <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center! Please collect it. 🍗')}" target="_blank" class="btn-whatsapp">
+                            💬 Send Ready Msg to WhatsApp
+                        </a>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="order-header">
+                        <span class="token-tag">#${token}</span>
+                        <span class="order-type-badge">${orderType}</span>
+                    </div>
+                    <div class="order-details">
+                        <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
+                        <p><b>Items:</b> ${items}</p>
+                        <p><b>Total Amount:</b> ₹${amount} | <b>Time:</b> ${time}</p>
+                        <p><b>Address:</b> ${address}</p>
+                        <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
+                    </div>
+                    ${actionsHTML}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateOrderStatus(token, statusText) {
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "updateStatus", token: token, status: statusText })
+            }).then(() => {
+                setTimeout(() => loadAdminData(), 1000);
+                alert(`Order #${token} status updated to ${statusText}!`);
+            });
+        }
+    </script>
+</body>
+</html>
