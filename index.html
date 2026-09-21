@@ -54,6 +54,32 @@
         .btn-whatsapp { background: #25d366; color: white; width: 100%; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; }
         .refresh-btn-hdr { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
     </style>
+
+    <!-- Firebase SDK (Modular via CDN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHo7LhTdeTfBLRFXfZLy4GqiE1k8JEW00",
+            authDomain: "kcc-customerorders.firebaseapp.com",
+            databaseURL: "https://kcc-customerorders-default-rtdb.firebaseio.com",
+            projectId: "kcc-customerorders",
+            storageBucket: "kcc-customerorders.firebasestorage.app",
+            messagingSenderId: "472690478588",
+            appId: "1:472690478588:web:d788778c1a3943a65ef679",
+            measurementId: "G-L8QPB9MTLK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.db = db;
+        window.ref = ref;
+        window.onValue = onValue;
+        window.update = update;
+        window.set = set;
+    </script>
 </head>
 <body onload="initDashboard()">
 
@@ -66,14 +92,14 @@
             </div>
         </div>
         <div class="header-actions">
-            <button class="refresh-btn-hdr" onclick="loadAdminData()">🔄 Refresh</button>
+            <button class="refresh-btn-hdr" onclick="loadAdminData()">🔄 Live Sync</button>
         </div>
     </header>
 
     <div class="main-layout">
         <div class="sidebar-panel">
             <div class="sound-banner" id="soundBanner">
-                <p>🔊 Voice Alert Enable karein</p>
+                <p>🔊 Marathi Voice Alert Enable karein</p>
                 <button class="sound-btn" onclick="enableAudioAlerts()">Enable Audio</button>
             </div>
 
@@ -119,37 +145,40 @@
             </div>
 
             <div id="adminOrdersContainer">
-                <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Google Sheet...</p>
+                <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Firebase Database...</p>
             </div>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuvyRDb5GgoBrS0P-uobTl5BzjSQr9vy_sWeajqAzYjibpSP0yBfAVLmj4Eq49qvKPhQ/exec";
         let audioEnabled = false;
         let cachedOrders = [];
-        let currentShopOpen = "true";
-        let isDateFilteringActive = false; // Default off so all orders show clearly first
-
-        function saveProductRates() {
-            syncSettingsToCloud(true);
-        }
+        let currentShopOpen = true;
+        let isDateFilteringActive = false; 
 
         function initDashboard() {
             let today = new Date().toISOString().split('T')[0];
             let dateInput = document.getElementById('orderDateFilter');
             if (!dateInput.value) dateInput.value = today;
-            
-            loadAdminData();
 
-            setInterval(() => {
-                loadAdminData(true);
-            }, 8000);
+            let checkInterval = setInterval(() => {
+                if (window.db) {
+                    clearInterval(checkInterval);
+                    loadAdminData();
+                }
+            }, 300);
         }
 
         function enableAudioAlerts() {
             audioEnabled = true;
             document.getElementById('soundBanner').style.display = 'none';
+            
+            // Test audio in Marathi on enable
+            if ('speechSynthesis' in window) {
+                let testUtterance = new SpeechSynthesisUtterance("ऑडिओ अलर्ट सुरू झाले आहेत!");
+                testUtterance.lang = 'mr-IN';
+                window.speechSynthesis.speak(testUtterance);
+            }
         }
 
         function toggleDateFilterMode() {
@@ -165,64 +194,72 @@
             renderAdminOrders();
         }
 
-        function loadAdminData(isBackground = false) {
-            fetch(SCRIPT_URL + "?action=getSettings")
-            .then(res => res.json())
-            .then(settings => {
-                currentShopOpen = settings.shopOpen !== undefined ? settings.shopOpen : "true";
-                let toggleBtn = document.getElementById('shopToggleBtn');
-                let subtext = document.getElementById('shopStatusSubtext');
+        function loadAdminData() {
+            if (!window.db) return;
 
-                if (currentShopOpen === "false") {
-                    toggleBtn.className = "toggle-btn btn-closed";
-                    toggleBtn.innerText = "🔴 CLOSED";
-                    subtext.innerText = "Dukan abhi band hai";
-                } else {
-                    toggleBtn.className = "toggle-btn btn-open";
-                    toggleBtn.innerText = "🟢 OPEN";
-                    subtext.innerText = "Dukan chalu hai";
-                }
+            const settingsRef = window.ref(window.db, 'settings');
+            window.onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings) {
+                    currentShopOpen = settings.shopOpen !== undefined ? settings.shopOpen : true;
+                    let toggleBtn = document.getElementById('shopToggleBtn');
+                    let subtext = document.getElementById('shopStatusSubtext');
 
-                if (settings.rates) {
-                    document.getElementById('rate_curry').value = settings.rates.curry || 220;
-                    document.getElementById('rate_leg').value = settings.rates.leg || 280;
-                    document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
-                    document.getElementById('rate_liver').value = settings.rates.liver || 200;
-                }
-            }).catch(err => console.log("Settings fetch error", err));
-
-            fetch(SCRIPT_URL)
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    if (isBackground && data.length > cachedOrders.length && cachedOrders.length > 0) {
-                        if (audioEnabled && 'speechSynthesis' in window) {
-                            let utterance = new SpeechSynthesisUtterance("Naya order aaya hai!");
-                            utterance.lang = 'hi-IN';
-                            window.speechSynthesis.speak(utterance);
-                        }
+                    if (currentShopOpen === false || currentShopOpen === "false") {
+                        toggleBtn.className = "toggle-btn btn-closed";
+                        toggleBtn.innerText = "🔴 CLOSED";
+                        subtext.innerText = "Dukan abhi band hai";
+                    } else {
+                        toggleBtn.className = "toggle-btn btn-open";
+                        toggleBtn.innerText = "🟢 OPEN";
+                        subtext.innerText = "Dukan chalu hai";
                     }
-                    cachedOrders = data;
-                    renderAdminOrders();
-                } else {
-                    document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Error: Sheet data format invalid.</p>`;
+
+                    if (settings.rates) {
+                        document.getElementById('rate_curry').value = settings.rates.curry || 220;
+                        document.getElementById('rate_leg').value = settings.rates.leg || 280;
+                        document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
+                        document.getElementById('rate_liver').value = settings.rates.liver || 200;
+                    }
                 }
-            })
-            .catch(err => {
-                console.log("Failed to fetch sheet orders", err);
-                if (!isBackground) {
-                    document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Connection Error! Check internet or URL.</p>`;
+            });
+
+            const ordersRef = window.ref(window.db, 'orders');
+            window.onValue(ordersRef, (snapshot) => {
+                const data = snapshot.val();
+                let ordersArray = [];
+                if (data) {
+                    ordersArray = Object.keys(data).map(key => ({
+                        firebaseKey: key,
+                        ...data[key]
+                    }));
                 }
+
+                // Agar naya order aaya hai to Marathi mein bolne ka code
+                if (audioEnabled && ordersArray.length > cachedOrders.length && cachedOrders.length > 0) {
+                    if ('speechSynthesis' in window) {
+                        let utterance = new SpeechSynthesisUtterance("नवीन ऑर्डर आली आहे!");
+                        utterance.lang = 'mr-IN'; // Marathi language set ki gayi hai
+                        utterance.rate = 1.0;
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }
+
+                cachedOrders = ordersArray;
+                renderAdminOrders();
+            }, (error) => {
+                console.log("Failed to fetch orders", error);
+                document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Connection Error! Check Firebase Rules.</p>`;
             });
         }
 
         function toggleShopStatus() {
-            currentShopOpen = (currentShopOpen === "true" || currentShopOpen === true) ? "false" : "true";
+            currentShopOpen = !currentShopOpen;
             
             let toggleBtn = document.getElementById('shopToggleBtn');
             let subtext = document.getElementById('shopStatusSubtext');
 
-            if (currentShopOpen === "false") {
+            if (!currentShopOpen) {
                 toggleBtn.className = "toggle-btn btn-closed";
                 toggleBtn.innerText = "🔴 CLOSED";
                 subtext.innerText = "Dukan abhi band hai";
@@ -232,58 +269,59 @@
                 subtext.innerText = "Dukan chalu hai";
             }
             
-            let payload = {
-                action: "updateSettings",
+            window.update(window.ref(window.db, 'settings'), {
                 shopOpen: currentShopOpen
-            };
-
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
             }).catch(err => console.log("Error updating status:", err));
         }
 
-        function syncSettingsToCloud(showAlert = true) {
+        function saveProductRates() {
             let curry = document.getElementById('rate_curry').value;
             let leg = document.getElementById('rate_leg').value;
             let boneless = document.getElementById('rate_boneless').value;
             let liver = document.getElementById('rate_liver').value;
 
-            let targetUrl = `${SCRIPT_URL}?action=updateSettings&shopOpen=${currentShopOpen}&curry=${curry}&leg=${leg}&boneless=${boneless}&liver=${liver}`;
-
-            fetch(targetUrl, { mode: 'no-cors' }).catch(err => console.log(err));
-
-            if (showAlert) {
+            window.update(window.ref(window.db, 'settings/rates'), {
+                curry: Number(curry),
+                leg: Number(leg),
+                boneless: Number(boneless),
+                liver: Number(liver)
+            }).then(() => {
                 alert("Rates successfully updated in Cloud & Customer App!");
-            }
-        }   
+            }).catch(err => console.log(err));
+        }
 
         function renderAdminOrders() {
             let container = document.getElementById('adminOrdersContainer');
             container.innerHTML = "";
 
-            let selectedDate = document.getElementById('orderDateFilter').value; // e.g. "2026-09-17"
+            let selectedDate = document.getElementById('orderDateFilter').value;
 
             let filteredOrders = cachedOrders.filter(order => {
-                if (!isDateFilteringActive) return true; // Show all when filter is off
-                
-                let orderTimeStr = order.Time || order.time || "";
-                
-                // If the stored time contains the exact selected date string (YYYY-MM-DD)
-                if (orderTimeStr.includes(selectedDate)) return true;
+                let orderDateStr = String(order.Date || order.date || "");
+                let orderTimeStr = String(order.Time || order.time || "");
 
-                // Handle Google Sheet old timestamp format mismatch if any
-                try {
-                    let d = new Date(orderTimeStr);
-                    if (!isNaN(d.getTime())) {
-                        let formattedD = d.toISOString().split('T')[0];
-                        if (formattedD === selectedDate) return true;
+                let extractedDate = "";
+                if (orderDateStr && orderDateStr.length >= 10) {
+                    extractedDate = orderDateStr.substring(0, 10);
+                } else if (orderTimeStr) {
+                    let match = orderTimeStr.match(/\d{4}-\d{2}-\d{2}/);
+                    if (match) {
+                        let d = new Date(orderTimeStr);
+                        if (!isNaN(d.getTime())) {
+                            let year = d.getFullYear();
+                            let month = String(d.getMonth() + 1).padStart(2, '0');
+                            let day = String(d.getDate()).padStart(2, '0');
+                            extractedDate = `${year}-${month}-${day}`;
+                        } else {
+                            extractedDate = match[0];
+                        }
                     }
-                } catch(e) {}
+                }
 
-                return false;
+                if (isDateFilteringActive) {
+                    return extractedDate === selectedDate;
+                }
+                return true;
             });
 
             filteredOrders.reverse();
@@ -305,10 +343,27 @@
                 let phone = order.Phone || order.phone || "";
                 let items = order.Items || order.items || "";
                 let amount = order.TotalAmount || order.totalAmount || 0;
-                let time = order.Time || order.time || "";
+                let rawTime = order.Time || order.time || "";
                 let address = order.Address || order.address || "Pickup";
                 let orderType = order.OrderType || order.orderType || "Pickup";
                 let status = order.Status || order.status || 'Pending';
+                let firebaseKey = order.firebaseKey;
+
+                let cleanTime = rawTime;
+                if (rawTime.includes('T') || rawTime.includes(':')) {
+                    try {
+                        let d = new Date(rawTime.includes('T') ? rawTime : "1970-01-01T" + rawTime);
+                        if (!isNaN(d.getTime())) {
+                            let hrs = d.getHours();
+                            let mins = d.getMinutes();
+                            let ampm = hrs >= 12 ? 'PM' : 'AM';
+                            hrs = hrs % 12;
+                            hrs = hrs ? hrs : 12;
+                            mins = mins < 10 ? '0' + mins : mins;
+                            cleanTime = `${hrs}:${mins} ${ampm}`;
+                        }
+                    } catch(e) {}
+                }
 
                 let isCompleted = (status === 'Completed');
 
@@ -321,9 +376,9 @@
                 } else {
                     actionsHTML = `
                         <div class="order-actions">
-                            <button class="action-btn btn-accept" onclick="updateOrderStatus('${token}', 'Accepted')">Accept</button>
-                            <button class="action-btn btn-ready" onclick="updateOrderStatus('${token}', 'Ready 🚀')">Ready</button>
-                            <button class="action-btn btn-done" onclick="updateOrderStatus('${token}', 'Completed')">Done</button>
+                            <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
+                            <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
+                            <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
                         </div>
                         <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center! Please collect it. 🍗')}" target="_blank" class="btn-whatsapp">
                             💬 Send Ready Msg to WhatsApp
@@ -339,7 +394,7 @@
                     <div class="order-details">
                         <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
                         <p><b>Items:</b> ${items}</p>
-                        <p><b>Total Amount:</b> ₹${amount} | <b>Time:</b> ${time}</p>
+                        <p><b>Total Amount:</b> ₹${amount} | <b>Time:</b> ${cleanTime}</p>
                         <p><b>Address:</b> ${address}</p>
                         <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
                     </div>
@@ -349,15 +404,13 @@
             });
         }
 
-        function updateOrderStatus(token, statusText) {
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "updateStatus", token: token, status: statusText })
+        function updateOrderStatus(firebaseKey, statusText, token) {
+            window.update(window.ref(window.db, 'orders/' + firebaseKey), {
+                Status: statusText
             }).then(() => {
-                setTimeout(() => loadAdminData(), 1000);
                 alert(`Order #${token} status updated to ${statusText}!`);
+            }).catch(err => {
+                console.log("Error updating order status:", err);
             });
         }
     </script>
