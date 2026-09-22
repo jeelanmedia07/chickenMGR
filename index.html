@@ -136,10 +136,12 @@
 
         <div class="content-panel">
             <div class="card filter-bar">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <label for="orderDateFilter">📅 Date: </label>
                     <input type="date" id="orderDateFilter" onchange="renderAdminOrders()">
                     <button onclick="toggleDateFilterMode()" id="filterModeBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🔍 Filter by Date (Off)</button>
+                    <!-- DELETE ALL BUTTON ADDED HERE -->
+                    <button onclick="deleteAllOrders()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🗑️ Delete All</button>
                 </div>
                 <div id="orderCountBadge" style="font-size: 12px; background: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700;">0 Orders</div>
             </div>
@@ -173,7 +175,6 @@
             audioEnabled = true;
             document.getElementById('soundBanner').style.display = 'none';
             
-            // Test audio in Marathi on enable
             if ('speechSynthesis' in window) {
                 let testUtterance = new SpeechSynthesisUtterance("ऑडिओ अलर्ट सुरू झाले आहेत!");
                 testUtterance.lang = 'mr-IN';
@@ -192,6 +193,21 @@
                 btn.innerText = "🔍 Filter by Date (Off)";
             }
             renderAdminOrders();
+        }
+
+        function deleteAllOrders() {
+            if (confirm("Kya aap sach mein saare orders delete karna chahte hain? Yeh wapas nahi aayenge!")) {
+                window.set(window.ref(window.db, 'orders'), null)
+                    .then(() => {
+                        alert("Saare orders successfully delete kar diye gaye hain!");
+                        cachedOrders = [];
+                        renderAdminOrders();
+                    })
+                    .catch((error) => {
+                        console.log("Error deleting orders:", error);
+                        alert("Orders delete karne mein error aaya.");
+                    });
+            }
         }
 
         function loadAdminData() {
@@ -235,11 +251,10 @@
                     }));
                 }
 
-                // Agar naya order aaya hai to Marathi mein bolne ka code
                 if (audioEnabled && ordersArray.length > cachedOrders.length && cachedOrders.length > 0) {
                     if ('speechSynthesis' in window) {
                         let utterance = new SpeechSynthesisUtterance("नवीन ऑर्डर आली आहे!");
-                        utterance.lang = 'mr-IN'; // Marathi language set ki gayi hai
+                        utterance.lang = 'mr-IN';
                         utterance.rate = 1.0;
                         window.speechSynthesis.speak(utterance);
                     }
@@ -296,26 +311,34 @@
 
             let selectedDate = document.getElementById('orderDateFilter').value;
 
+            cachedOrders.sort((a, b) => {
+                let timeA = a.timestamp || new Date(a.Date || a.date || a.Time || a.time || 0).getTime();
+                let timeB = b.timestamp || new Date(b.Date || b.date || b.Time || b.time || 0).getTime();
+                return timeB - timeA; 
+            });
+
             let filteredOrders = cachedOrders.filter(order => {
-                let orderDateStr = String(order.Date || order.date || "");
-                let orderTimeStr = String(order.Time || order.time || "");
+                let orderDateStr = String(order.date || order.Date || "");
+                let orderTimeStr = String(order.time || order.Time || "");
 
                 let extractedDate = "";
                 if (orderDateStr && orderDateStr.length >= 10) {
                     extractedDate = orderDateStr.substring(0, 10);
-                } else if (orderTimeStr) {
-                    let match = orderTimeStr.match(/\d{4}-\d{2}-\d{2}/);
-                    if (match) {
-                        let d = new Date(orderTimeStr);
-                        if (!isNaN(d.getTime())) {
-                            let year = d.getFullYear();
-                            let month = String(d.getMonth() + 1).padStart(2, '0');
-                            let day = String(d.getDate()).padStart(2, '0');
-                            extractedDate = `${year}-${month}-${day}`;
-                        } else {
-                            extractedDate = match[0];
-                        }
-                    }
+                } else if (orderTimeStr && orderTimeStr.includes("-")) {
+                    extractedDate = orderTimeStr.substring(0, 10);
+                } else if (order.timestamp) {
+                    let d = new Date(order.timestamp);
+                    let year = d.getFullYear();
+                    let month = String(d.getMonth() + 1).padStart(2, '0');
+                    let day = String(d.getDate()).padStart(2, '0');
+                    extractedDate = `${year}-${month}-${day}`;
+                } else {
+                    // Agar order mein date nahi hai toh aaj ki date maan lein
+                    let d = new Date();
+                    let year = d.getFullYear();
+                    let month = String(d.getMonth() + 1).padStart(2, '0');
+                    let day = String(d.getDate()).padStart(2, '0');
+                    extractedDate = `${year}-${month}-${day}`;
                 }
 
                 if (isDateFilteringActive) {
@@ -323,8 +346,6 @@
                 }
                 return true;
             });
-
-            filteredOrders.reverse();
 
             document.getElementById('orderCountBadge').innerText = `${filteredOrders.length} Orders`;
             document.getElementById('statTotalOrders').innerText = filteredOrders.length;
@@ -338,31 +359,47 @@
             }
 
             filteredOrders.forEach((order) => {
-                let token = order.Token || order.token || "MB-000";
-                let cName = order.CustomerName || order.customerName || "Customer";
-                let phone = order.Phone || order.phone || "";
-                let items = order.Items || order.items || "";
-                let amount = order.TotalAmount || order.totalAmount || 0;
-                let rawTime = order.Time || order.time || "";
-                let address = order.Address || order.address || "Pickup";
-                let orderType = order.OrderType || order.orderType || "Pickup";
-                let status = order.Status || order.status || 'Pending';
+                let token = order.token || order.Token || "MB-000";
+                let cName = order.customerName || order.CustomerName || "Customer";
+                let phone = order.phone || order.Phone || "";
+                let items = order.items || order.Items || "";
+                let amount = order.totalAmount || order.TotalAmount || 0;
+                let rawDate = order.date || order.Date || "";
+                let rawTime = order.time || order.Time || "";
+                let address = order.address || order.Address || "Pickup";
+                let orderType = order.orderType || order.OrderType || "Pickup";
+                let status = order.status || order.Status || 'Pending';
                 let firebaseKey = order.firebaseKey;
 
-                let cleanTime = rawTime;
-                if (rawTime.includes('T') || rawTime.includes(':')) {
-                    try {
-                        let d = new Date(rawTime.includes('T') ? rawTime : "1970-01-01T" + rawTime);
-                        if (!isNaN(d.getTime())) {
-                            let hrs = d.getHours();
-                            let mins = d.getMinutes();
-                            let ampm = hrs >= 12 ? 'PM' : 'AM';
-                            hrs = hrs % 12;
-                            hrs = hrs ? hrs : 12;
-                            mins = mins < 10 ? '0' + mins : mins;
-                            cleanTime = `${hrs}:${mins} ${ampm}`;
-                        }
-                    } catch(e) {}
+                let formattedTime = rawTime;
+                if (rawTime && rawTime.includes(":")) {
+                    let parts = rawTime.split(":");
+                    let h = parseInt(parts[0], 10);
+                    let m = parts[1];
+                    if (!isNaN(h)) {
+                        let ampm = h >= 12 ? 'PM' : 'AM';
+                        h = h % 12;
+                        h = h ? h : 12;
+                        formattedTime = `${h}:${m} ${ampm}`;
+                    }
+                }
+
+                let displayDateTime = formattedTime;
+                if (order.timestamp) {
+                    let d = new Date(order.timestamp);
+                    let year = d.getFullYear();
+                    let month = String(d.getMonth() + 1).padStart(2, '0');
+                    let day = String(d.getDate()).padStart(2, '0');
+                    let datePart = `${year}-${month}-${day}`;
+                    displayDateTime = `${datePart} (${formattedTime})`;
+                } else if (rawDate) {
+                    displayDateTime = `${rawDate} (${formattedTime})`;
+                } else {
+                    let d = new Date();
+                    let year = d.getFullYear();
+                    let month = String(d.getMonth() + 1).padStart(2, '0');
+                    let day = String(d.getDate()).padStart(2, '0');
+                    displayDateTime = `${year}-${month}-${day} (${formattedTime})`;
                 }
 
                 let isCompleted = (status === 'Completed');
@@ -394,7 +431,7 @@
                     <div class="order-details">
                         <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
                         <p><b>Items:</b> ${items}</p>
-                        <p><b>Total Amount:</b> ₹${amount} | <b>Time:</b> ${cleanTime}</p>
+                        <p><b>Total Amount:</b> ₹${amount} | <b>Date/Time:</b> ${displayDateTime}</p>
                         <p><b>Address:</b> ${address}</p>
                         <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
                     </div>
