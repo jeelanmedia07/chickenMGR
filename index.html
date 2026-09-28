@@ -39,8 +39,10 @@
         .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 10px; text-align: center; }
         .stat-box span { font-size: 11px; color: #64748b; font-weight: 600; display: block; }
         .stat-box h4 { margin: 4px 0 0 0; font-size: 16px; color: #0f172a; font-weight: 700; }
-        #adminOrdersContainer { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 1024px) { #adminOrdersContainer { grid-template-columns: 1fr 1fr; } }
+        #adminOrdersContainer, #completedOrdersContainer { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 1024px) { 
+            #adminOrdersContainer, #completedOrdersContainer { grid-template-columns: 1fr 1fr; } 
+        }
         .order-card { background: #ffffff; border-radius: 12px; padding: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
         .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; }
         .token-tag { font-size: 15px; font-weight: 700; color: #059669; }
@@ -140,14 +142,26 @@
                     <label for="orderDateFilter">📅 Date: </label>
                     <input type="date" id="orderDateFilter" onchange="renderAdminOrders()">
                     <button onclick="toggleDateFilterMode()" id="filterModeBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🔍 Filter by Date (Off)</button>
-                    <!-- DELETE ALL BUTTON ADDED HERE -->
                     <button onclick="deleteAllOrders()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🗑️ Delete All</button>
                 </div>
-                <div id="orderCountBadge" style="font-size: 12px; background: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700;">0 Orders</div>
+                <div id="orderCountBadge" style="font-size: 12px; background: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700;">0 Pending Orders</div>
             </div>
 
+            <!-- Active / Live Orders Section -->
+            <h3 style="margin: 4px 0 0 2px; font-size: 15px; color: #1e293b;">⚡ Live / Pending Orders</h3>
             <div id="adminOrdersContainer">
                 <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Firebase Database...</p>
+            </div>
+
+            <!-- Completed Orders Section (Collapsible / Toggleable) -->
+            <div style="margin-top: 15px;">
+                <button onclick="toggleCompletedSection()" id="toggleCompletedBtn" style="width: 100%; background: #e2e8f0; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; color: #334155;">
+                    <span>📁 Completed Orders History (<span id="completedCountBadge">0</span>)</span>
+                    <span id="toggleIcon">▼ View</span>
+                </button>
+                <div id="completedOrdersContainer" style="display: none; margin-top: 10px;">
+                    <!-- Completed orders will load here -->
+                </div>
             </div>
         </div>
     </div>
@@ -157,6 +171,7 @@
         let cachedOrders = [];
         let currentShopOpen = true;
         let isDateFilteringActive = false; 
+        let showCompletedSection = false;
 
         function initDashboard() {
             let today = new Date().toISOString().split('T')[0];
@@ -193,6 +208,19 @@
                 btn.innerText = "🔍 Filter by Date (Off)";
             }
             renderAdminOrders();
+        }
+
+        function toggleCompletedSection() {
+            showCompletedSection = !showCompletedSection;
+            let container = document.getElementById('completedOrdersContainer');
+            let toggleIcon = document.getElementById('toggleIcon');
+            if (showCompletedSection) {
+                container.style.display = 'grid';
+                toggleIcon.innerText = '▲ Hide';
+            } else {
+                container.style.display = 'none';
+                toggleIcon.innerText = '▼ View';
+            }
         }
 
         function deleteAllOrders() {
@@ -307,7 +335,9 @@
 
         function renderAdminOrders() {
             let container = document.getElementById('adminOrdersContainer');
+            let completedContainer = document.getElementById('completedOrdersContainer');
             container.innerHTML = "";
+            completedContainer.innerHTML = "";
 
             let selectedDate = document.getElementById('orderDateFilter').value;
 
@@ -333,7 +363,6 @@
                     let day = String(d.getDate()).padStart(2, '0');
                     extractedDate = `${year}-${month}-${day}`;
                 } else {
-                    // Agar order mein date nahi hai toh aaj ki date maan lein
                     let d = new Date();
                     let year = d.getFullYear();
                     let month = String(d.getMonth() + 1).padStart(2, '0');
@@ -347,105 +376,131 @@
                 return true;
             });
 
-            document.getElementById('orderCountBadge').innerText = `${filteredOrders.length} Orders`;
+            // Improved check for completed status (checks both Status and status fields case-insensitively)
+            let activeOrders = filteredOrders.filter(ord => {
+                let st = String(ord.Status || ord.status || "").trim().toLowerCase();
+                return st !== 'completed';
+            });
+            
+            let completedOrders = filteredOrders.filter(ord => {
+                let st = String(ord.Status || ord.status || "").trim().toLowerCase();
+                return st === 'completed';
+            });
+
+            document.getElementById('orderCountBadge').innerText = `${activeOrders.length} Pending Orders`;
+            document.getElementById('completedCountBadge').innerText = completedOrders.length;
             document.getElementById('statTotalOrders').innerText = filteredOrders.length;
 
             let totalRev = filteredOrders.reduce((sum, ord) => sum + (parseFloat(ord.TotalAmount || ord.totalAmount) || 0), 0);
             document.getElementById('statTotalRevenue').innerText = `₹${totalRev}`;
 
-            if (filteredOrders.length === 0) {
-                container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Is date par koi order nahi mila.</p>`;
-                return;
+            // Render Active Orders
+            if (activeOrders.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 20px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Abhi koi naya pending order nahi hai.</p>`;
+            } else {
+                activeOrders.forEach(order => {
+                    container.appendChild(createOrderCardElement(order));
+                });
             }
 
-            filteredOrders.forEach((order) => {
-                let token = order.token || order.Token || "MB-000";
-                let cName = order.customerName || order.CustomerName || "Customer";
-                let phone = order.phone || order.Phone || "";
-                let items = order.items || order.Items || "";
-                let amount = order.totalAmount || order.TotalAmount || 0;
-                let rawDate = order.date || order.Date || "";
-                let rawTime = order.time || order.Time || "";
-                let address = order.address || order.Address || "Pickup";
-                let orderType = order.orderType || order.OrderType || "Pickup";
-                let status = order.status || order.Status || 'Pending';
-                let firebaseKey = order.firebaseKey;
+            // Render Completed Orders
+            if (completedOrders.length === 0) {
+                completedContainer.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 12.5px; padding: 15px 0; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">Koi completed order nahi hai.</p>`;
+            } else {
+                completedOrders.forEach(order => {
+                    completedContainer.appendChild(createOrderCardElement(order));
+                });
+            }
+        }
 
-                let formattedTime = rawTime;
-                if (rawTime && rawTime.includes(":")) {
-                    let parts = rawTime.split(":");
-                    let h = parseInt(parts[0], 10);
-                    let m = parts[1];
-                    if (!isNaN(h)) {
-                        let ampm = h >= 12 ? 'PM' : 'AM';
-                        h = h % 12;
-                        h = h ? h : 12;
-                        formattedTime = `${h}:${m} ${ampm}`;
-                    }
+        function createOrderCardElement(order) {
+            let token = order.token || order.Token || "MB-000";
+            let cName = order.customerName || order.CustomerName || "Customer";
+            let phone = order.phone || order.Phone || "";
+            let items = order.items || order.Items || "";
+            let amount = order.totalAmount || order.TotalAmount || 0;
+            let rawDate = order.date || order.Date || "";
+            let rawTime = order.time || order.Time || "";
+            let address = order.address || order.Address || "Pickup";
+            let orderType = order.orderType || order.OrderType || "Pickup";
+            let status = order.status || order.Status || 'Pending';
+            let firebaseKey = order.firebaseKey;
+
+            let formattedTime = rawTime;
+            if (rawTime && rawTime.includes(":")) {
+                let parts = rawTime.split(":");
+                let h = parseInt(parts[0], 10);
+                let m = parts[1];
+                if (!isNaN(h)) {
+                    let ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12;
+                    h = h ? h : 12;
+                    formattedTime = `${h}:${m} ${ampm}`;
                 }
+            }
 
-                let displayDateTime = formattedTime;
-                if (order.timestamp) {
-                    let d = new Date(order.timestamp);
-                    let year = d.getFullYear();
-                    let month = String(d.getMonth() + 1).padStart(2, '0');
-                    let day = String(d.getDate()).padStart(2, '0');
-                    let datePart = `${year}-${month}-${day}`;
-                    displayDateTime = `${datePart} (${formattedTime})`;
-                } else if (rawDate) {
-                    displayDateTime = `${rawDate} (${formattedTime})`;
-                } else {
-                    let d = new Date();
-                    let year = d.getFullYear();
-                    let month = String(d.getMonth() + 1).padStart(2, '0');
-                    let day = String(d.getDate()).padStart(2, '0');
-                    displayDateTime = `${year}-${month}-${day} (${formattedTime})`;
-                }
+            let displayDateTime = formattedTime;
+            if (order.timestamp) {
+                let d = new Date(order.timestamp);
+                let year = d.getFullYear();
+                let month = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                let datePart = `${year}-${month}-${day}`;
+                displayDateTime = `${datePart} (${formattedTime})`;
+            } else if (rawDate) {
+                displayDateTime = `${rawDate} (${formattedTime})`;
+            } else {
+                let d = new Date();
+                let year = d.getFullYear();
+                let month = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                displayDateTime = `${year}-${month}-${day} (${formattedTime})`;
+            }
 
-                let isCompleted = (status === 'Completed');
+            let isCompleted = String(status).trim().toLowerCase() === 'completed';
 
-                let card = document.createElement('div');
-                card.className = 'order-card';
-                
-                let actionsHTML = '';
-                if (isCompleted) {
-                    actionsHTML = `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 8px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 13px; margin-top: 10px;">✅ Order Completed</div>`;
-                } else {
-                    actionsHTML = `
-                        <div class="order-actions">
-                            <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
-                            <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
-                            <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
-                        </div>
-                        <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center! Please collect it. 🍗')}" target="_blank" class="btn-whatsapp">
-                            💬 Send Ready Msg to WhatsApp
-                        </a>
-                    `;
-                }
-
-                card.innerHTML = `
-                    <div class="order-header">
-                        <span class="token-tag">#${token}</span>
-                        <span class="order-type-badge">${orderType}</span>
+            let card = document.createElement('div');
+            card.className = 'order-card';
+            
+            let actionsHTML = '';
+            if (isCompleted) {
+                actionsHTML = `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 6px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 12px; margin-top: 8px;">✅ Order Completed</div>`;
+            } else {
+                actionsHTML = `
+                    <div class="order-actions">
+                        <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
+                        <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
+                        <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
                     </div>
-                    <div class="order-details">
-                        <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
-                        <p><b>Items:</b> ${items}</p>
-                        <p><b>Total Amount:</b> ₹${amount} | <b>Date/Time:</b> ${displayDateTime}</p>
-                        <p><b>Address:</b> ${address}</p>
-                        <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
-                    </div>
-                    ${actionsHTML}
+                    <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center! Please collect it. 🍗')}" target="_blank" class="btn-whatsapp">
+                        💬 Send Ready Msg to WhatsApp
+                    </a>
                 `;
-                container.appendChild(card);
-            });
+            }
+
+            card.innerHTML = `
+                <div class="order-header">
+                    <span class="token-tag">#${token}</span>
+                    <span class="order-type-badge">${orderType}</span>
+                </div>
+                <div class="order-details">
+                    <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
+                    <p><b>Items:</b> ${items}</p>
+                    <p><b>Total Amount:</b> ₹${amount} | <b>Date/Time:</b> ${displayDateTime}</p>
+                    <p><b>Address:</b> ${address}</p>
+                    <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
+                </div>
+                ${actionsHTML}
+            `;
+            return card;
         }
 
         function updateOrderStatus(firebaseKey, statusText, token) {
             window.update(window.ref(window.db, 'orders/' + firebaseKey), {
                 Status: statusText
             }).then(() => {
-                alert(`Order #${token} status updated to ${statusText}!`);
+                // Halka sa alert ya direct live sync refresh ho jayega
+                console.log(`Order #${token} updated to ${statusText}`);
             }).catch(err => {
                 console.log("Error updating order status:", err);
             });
