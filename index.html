@@ -128,10 +128,13 @@
 
             <div class="card rates-card">
                 <h3>Live Rate Manager</h3>
-                <div class="rate-row"><span>Fresh Chicken:</span><input type="number" id="rate_curry" value="220"> ₹</div>
+                <div class="rate-row"><span>Fresh Chicken:</span><input type="number" id="rate_curry" value="240"> ₹</div>
                 <div class="rate-row"><span>Chicken Leg Piece:</span><input type="number" id="rate_leg" value="280"> ₹</div>
                 <div class="rate-row"><span>Chicken Boneless:</span><input type="number" id="rate_boneless" value="340"> ₹</div>
                 <div class="rate-row"><span>Liver / Kaleji:</span><input type="number" id="rate_liver" value="200"> ₹</div>
+                <!-- 2 Nayi Categories ke rate inputs yahan add kiye gaye hain -->
+                <div class="rate-row"><span>Chicken Lollipop:</span><input type="number" id="rate_lolipop" value="300"> ₹</div>
+                <div class="rate-row"><span>Garden Cut piece:</span><input type="number" id="rate_garden" value="260"> ₹</div>
                 <button class="save-rates-btn" onclick="saveProductRates()">Update Rates in Customer App 💾</button>
             </div>
         </div>
@@ -260,10 +263,12 @@
                     }
 
                     if (settings.rates) {
-                        document.getElementById('rate_curry').value = settings.rates.curry || 220;
+                        document.getElementById('rate_curry').value = settings.rates.curry || 240;
                         document.getElementById('rate_leg').value = settings.rates.leg || 280;
                         document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
                         document.getElementById('rate_liver').value = settings.rates.liver || 200;
+                        document.getElementById('rate_lolipop').value = settings.rates.lolipop || 300;
+                        document.getElementById('rate_garden').value = settings.rates.garden || 260;
                     }
                 }
             });
@@ -322,12 +327,16 @@
             let leg = document.getElementById('rate_leg').value;
             let boneless = document.getElementById('rate_boneless').value;
             let liver = document.getElementById('rate_liver').value;
+            let lolipop = document.getElementById('rate_lolipop').value;
+            let garden = document.getElementById('rate_garden').value;
 
             window.update(window.ref(window.db, 'settings/rates'), {
                 curry: Number(curry),
                 leg: Number(leg),
                 boneless: Number(boneless),
-                liver: Number(liver)
+                liver: Number(liver),
+                lolipop: Number(lolipop),
+                garden: Number(garden)
             }).then(() => {
                 alert("Rates successfully updated in Cloud & Customer App!");
             }).catch(err => console.log(err));
@@ -376,7 +385,6 @@
                 return true;
             });
 
-            // Improved check for completed status (checks both Status and status fields case-insensitively)
             let activeOrders = filteredOrders.filter(ord => {
                 let st = String(ord.Status || ord.status || "").trim().toLowerCase();
                 return st !== 'completed';
@@ -394,7 +402,6 @@
             let totalRev = filteredOrders.reduce((sum, ord) => sum + (parseFloat(ord.TotalAmount || ord.totalAmount) || 0), 0);
             document.getElementById('statTotalRevenue').innerText = `₹${totalRev}`;
 
-            // Render Active Orders
             if (activeOrders.length === 0) {
                 container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 20px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Abhi koi naya pending order nahi hai.</p>`;
             } else {
@@ -403,7 +410,6 @@
                 });
             }
 
-            // Render Completed Orders
             if (completedOrders.length === 0) {
                 completedContainer.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 12.5px; padding: 15px 0; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">Koi completed order nahi hai.</p>`;
             } else {
@@ -495,16 +501,33 @@
             return card;
         }
 
-        function updateOrderStatus(firebaseKey, statusText, token) {
-            window.update(window.ref(window.db, 'orders/' + firebaseKey), {
-                Status: statusText
-            }).then(() => {
-                // Halka sa alert ya direct live sync refresh ho jayega
-                console.log(`Order #${token} updated to ${statusText}`);
-            }).catch(err => {
-                console.log("Error updating order status:", err);
-            });
+      function updateOrderStatus(firebaseKey, statusText, token) {
+    // Agar status 'Done' button se aa raha hai toh hum 'Completed' save karenge
+    let finalStatus = (statusText === 'Done' || statusText === 'Completed') ? 'Completed' : statusText;
+
+    window.update(window.ref(window.db, 'orders/' + firebaseKey), {
+        Status: finalStatus,
+        status: finalStatus // Dono keys handle karne ke liye
+    }).then(() => {
+        console.log(`Order #${token} updated to ${finalStatus}`);
+        
+        if (finalStatus === 'Completed') {
+            let orderObj = cachedOrders.find(o => o.firebaseKey === firebaseKey);
+            if (orderObj) {
+                let cName = orderObj.customerName || orderObj.CustomerName || "Customer";
+                let phone = orderObj.phone || orderObj.Phone || "";
+                let amount = orderObj.totalAmount || orderObj.TotalAmount || 0;
+                
+                let msg = `Hello ${cName}, thank you for ordering from Kadir Chicken Center! Aapka order #${token} (Total: ₹${amount}) successfully complete ho gaya hai. Dobar visit karein! 🍗`;
+                let whatsappUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
+                
+                window.open(whatsappUrl, '_blank');
+            }
         }
+    }).catch(err => {
+        console.log("Error updating order status:", err);
+    });
+}
     </script>
 </body>
 </html>
