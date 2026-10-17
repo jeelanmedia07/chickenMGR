@@ -22,7 +22,8 @@
         .sound-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
         .sound-banner p { margin: 0; font-size: 12px; font-weight: 600; color: #1e40af; }
         .sound-btn { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
-        .control-card { display: flex; justify-content: space-between; align-items: center; }
+        .control-card { display: flex; flex-direction: column; gap: 10px; }
+        .control-top { display: flex; justify-content: space-between; align-items: center; }
         .control-info h3 { margin: 0 0 2px 0; font-size: 15px; color: #1e293b; font-weight: 700; }
         .control-info p { margin: 0; font-size: 11.5px; color: #64748b; }
         .toggle-btn { padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
@@ -55,6 +56,14 @@
         .btn-done { background: #64748b; }
         .btn-whatsapp { background: #25d366; color: white; width: 100%; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; }
         .refresh-btn-hdr { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        
+        /* Table Styles for Coins */
+        .coins-table-container { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #475569; font-weight: 700; }
+        tr:hover { background: #f1f5f9; }
+        .badge-timer { background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; border: 1px solid #fde68a; }
     </style>
 
     <!-- Firebase SDK (Modular via CDN) -->
@@ -106,11 +115,20 @@
             </div>
 
             <div class="card control-card">
-                <div class="control-info">
-                    <h3>Dukan Status</h3>
-                    <p id="shopStatusSubtext">Customers ko status dikh raha hai</p>
+                <div class="control-top">
+                    <div class="control-info">
+                        <h3>Dukan Status</h3>
+                        <p id="shopStatusSubtext">Customers ko status dikh raha hai</p>
+                    </div>
+                    <button id="shopToggleBtn" class="toggle-btn btn-open" onclick="toggleShopStatus()">🟢 OPEN</button>
                 </div>
-                <button id="shopToggleBtn" class="toggle-btn btn-open" onclick="toggleShopStatus()">🟢 OPEN</button>
+                
+                <!-- Shop Closed Custom Note Input -->
+                <div id="closedNoteBoxContainer" style="margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                    <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Shop Close Note / Message (Customer App):</label>
+                    <input type="text" id="shopClosedReasonInput" placeholder="Jaise: Dukan shaam 5 baje khulegi..." style="width: 100%; padding: 7px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; margin-bottom: 6px;">
+                    <button onclick="saveShopCloseNote()" style="background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; width: 100%;">Save / Update Closed Note 📝</button>
+                </div>
             </div>
 
             <div class="card" style="padding: 12px 16px;">
@@ -132,7 +150,6 @@
                 <div class="rate-row"><span>Chicken Leg Piece:</span><input type="number" id="rate_leg" value="280"> ₹</div>
                 <div class="rate-row"><span>Chicken Boneless:</span><input type="number" id="rate_boneless" value="340"> ₹</div>
                 <div class="rate-row"><span>Liver / Kaleji:</span><input type="number" id="rate_liver" value="200"> ₹</div>
-                <!-- 2 Nayi Categories ke rate inputs yahan add kiye gaye hain -->
                 <div class="rate-row"><span>Chicken Lollipop:</span><input type="number" id="rate_lolipop" value="300"> ₹</div>
                 <div class="rate-row"><span>Garden Cut piece:</span><input type="number" id="rate_garden" value="260"> ₹</div>
                 <button class="save-rates-btn" onclick="saveProductRates()">Update Rates in Customer App 💾</button>
@@ -140,6 +157,30 @@
         </div>
 
         <div class="content-panel">
+            <!-- Customer Coins Loyalty Table Section -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                    <h3 style="margin: 0; font-size: 15px; color: #1e293b;">🪙 Customer Loyalty Coins Manager</h3>
+                    <input type="text" id="coinSearchInput" onkeyup="renderCoinsTable()" placeholder="🔍 Search Name or Phone..." style="padding: 6px 10px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; width: 180px;">
+                </div>
+                <div class="coins-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Phone</th>
+                                <th>Coins</th>
+                                <th>Status / Expiry</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coinsTableBody">
+                            <tr><td colspan="5" style="text-align:center; color:#64748b;">Loading Customer Coins...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="card filter-bar">
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <label for="orderDateFilter">📅 Date: </label>
@@ -156,15 +197,13 @@
                 <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Firebase Database...</p>
             </div>
 
-            <!-- Completed Orders Section (Collapsible / Toggleable) -->
+            <!-- Completed Orders Section -->
             <div style="margin-top: 15px;">
                 <button onclick="toggleCompletedSection()" id="toggleCompletedBtn" style="width: 100%; background: #e2e8f0; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; color: #334155;">
                     <span>📁 Completed Orders History (<span id="completedCountBadge">0</span>)</span>
                     <span id="toggleIcon">▼ View</span>
                 </button>
-                <div id="completedOrdersContainer" style="display: none; margin-top: 10px;">
-                    <!-- Completed orders will load here -->
-                </div>
+                <div id="completedOrdersContainer" style="display: none; margin-top: 10px;"></div>
             </div>
         </div>
     </div>
@@ -172,7 +211,9 @@
     <script>
         let audioEnabled = false;
         let cachedOrders = [];
+        let cachedCoinsData = {};
         let currentShopOpen = true;
+        let currentShopNote = "";
         let isDateFilteringActive = false; 
         let showCompletedSection = false;
 
@@ -192,7 +233,6 @@
         function enableAudioAlerts() {
             audioEnabled = true;
             document.getElementById('soundBanner').style.display = 'none';
-            
             if ('speechSynthesis' in window) {
                 let testUtterance = new SpeechSynthesisUtterance("ऑडिओ अलर्ट सुरू झाले आहेत!");
                 testUtterance.lang = 'mr-IN';
@@ -203,13 +243,8 @@
         function toggleDateFilterMode() {
             isDateFilteringActive = !isDateFilteringActive;
             let btn = document.getElementById('filterModeBtn');
-            if (isDateFilteringActive) {
-                btn.style.background = "#059669";
-                btn.innerText = "🔍 Filter by Date (On)";
-            } else {
-                btn.style.background = "#0284c7";
-                btn.innerText = "🔍 Filter by Date (Off)";
-            }
+            btn.style.background = isDateFilteringActive ? "#059669" : "#0284c7";
+            btn.innerText = isDateFilteringActive ? "🔍 Filter by Date (On)" : "🔍 Filter by Date (Off)";
             renderAdminOrders();
         }
 
@@ -217,40 +252,34 @@
             showCompletedSection = !showCompletedSection;
             let container = document.getElementById('completedOrdersContainer');
             let toggleIcon = document.getElementById('toggleIcon');
-            if (showCompletedSection) {
-                container.style.display = 'grid';
-                toggleIcon.innerText = '▲ Hide';
-            } else {
-                container.style.display = 'none';
-                toggleIcon.innerText = '▼ View';
-            }
+            container.style.display = showCompletedSection ? 'grid' : 'none';
+            toggleIcon.innerText = showCompletedSection ? '▲ Hide' : '▼ View';
         }
 
         function deleteAllOrders() {
-            if (confirm("Kya aap sach mein saare orders delete karna chahte hain? Yeh wapas nahi aayenge!")) {
-                window.set(window.ref(window.db, 'orders'), null)
-                    .then(() => {
-                        alert("Saare orders successfully delete kar diye gaye hain!");
-                        cachedOrders = [];
-                        renderAdminOrders();
-                    })
-                    .catch((error) => {
-                        console.log("Error deleting orders:", error);
-                        alert("Orders delete karne mein error aaya.");
-                    });
+            if (confirm("Kya aap sach mein saare orders delete karna chahte hain?")) {
+                window.set(window.ref(window.db, 'orders'), null).then(() => {
+                    alert("Saare orders delete kar diye gaye hain!");
+                    cachedOrders = [];
+                    renderAdminOrders();
+                });
             }
         }
 
         function loadAdminData() {
             if (!window.db) return;
 
+            // Settings Listener
             const settingsRef = window.ref(window.db, 'settings');
             window.onValue(settingsRef, (snapshot) => {
                 const settings = snapshot.val();
                 if (settings) {
                     currentShopOpen = settings.shopOpen !== undefined ? settings.shopOpen : true;
+                    currentShopNote = settings.shopNote || "";
+                    
                     let toggleBtn = document.getElementById('shopToggleBtn');
                     let subtext = document.getElementById('shopStatusSubtext');
+                    let noteInput = document.getElementById('shopClosedReasonInput');
 
                     if (currentShopOpen === false || currentShopOpen === "false") {
                         toggleBtn.className = "toggle-btn btn-closed";
@@ -260,6 +289,10 @@
                         toggleBtn.className = "toggle-btn btn-open";
                         toggleBtn.innerText = "🟢 OPEN";
                         subtext.innerText = "Dukan chalu hai";
+                    }
+
+                    if (!noteInput.value) {
+                        noteInput.value = currentShopNote;
                     }
 
                     if (settings.rates) {
@@ -273,73 +306,123 @@
                 }
             });
 
+            // Orders Listener
             const ordersRef = window.ref(window.db, 'orders');
             window.onValue(ordersRef, (snapshot) => {
                 const data = snapshot.val();
                 let ordersArray = [];
                 if (data) {
-                    ordersArray = Object.keys(data).map(key => ({
-                        firebaseKey: key,
-                        ...data[key]
-                    }));
+                    ordersArray = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
                 }
 
                 if (audioEnabled && ordersArray.length > cachedOrders.length && cachedOrders.length > 0) {
                     if ('speechSynthesis' in window) {
                         let utterance = new SpeechSynthesisUtterance("नवीन ऑर्डर आली आहे!");
                         utterance.lang = 'mr-IN';
-                        utterance.rate = 1.0;
                         window.speechSynthesis.speak(utterance);
                     }
                 }
 
                 cachedOrders = ordersArray;
                 renderAdminOrders();
-            }, (error) => {
-                console.log("Failed to fetch orders", error);
-                document.getElementById('adminOrdersContainer').innerHTML = `<p style="text-align: center; color: #dc2626; padding: 20px;">Connection Error! Check Firebase Rules.</p>`;
+            });
+
+            // Customer Coins Listener
+            const coinsRef = window.ref(window.db, 'customer_coins');
+            window.onValue(coinsRef, (snapshot) => {
+                cachedCoinsData = snapshot.val() || {};
+                renderCoinsTable();
             });
         }
 
         function toggleShopStatus() {
             currentShopOpen = !currentShopOpen;
-            
-            let toggleBtn = document.getElementById('shopToggleBtn');
-            let subtext = document.getElementById('shopStatusSubtext');
+            window.update(window.ref(window.db, 'settings'), { shopOpen: currentShopOpen });
+        }
 
-            if (!currentShopOpen) {
-                toggleBtn.className = "toggle-btn btn-closed";
-                toggleBtn.innerText = "🔴 CLOSED";
-                subtext.innerText = "Dukan abhi band hai";
-            } else {
-                toggleBtn.className = "toggle-btn btn-open";
-                toggleBtn.innerText = "🟢 OPEN";
-                subtext.innerText = "Dukan chalu hai";
-            }
-            
-            window.update(window.ref(window.db, 'settings'), {
-                shopOpen: currentShopOpen
-            }).catch(err => console.log("Error updating status:", err));
+        function saveShopCloseNote() {
+            let noteVal = document.getElementById('shopClosedReasonInput').value.trim();
+            window.update(window.ref(window.db, 'settings'), { shopNote: noteVal }).then(() => {
+                alert("Shop Close note updated successfully!");
+            });
         }
 
         function saveProductRates() {
-            let curry = document.getElementById('rate_curry').value;
-            let leg = document.getElementById('rate_leg').value;
-            let boneless = document.getElementById('rate_boneless').value;
-            let liver = document.getElementById('rate_liver').value;
-            let lolipop = document.getElementById('rate_lolipop').value;
-            let garden = document.getElementById('rate_garden').value;
-
             window.update(window.ref(window.db, 'settings/rates'), {
-                curry: Number(curry),
-                leg: Number(leg),
-                boneless: Number(boneless),
-                liver: Number(liver),
-                lolipop: Number(lolipop),
-                garden: Number(garden)
-            }).then(() => {
-                alert("Rates successfully updated in Cloud & Customer App!");
-            }).catch(err => console.log(err));
+                curry: Number(document.getElementById('rate_curry').value),
+                leg: Number(document.getElementById('rate_leg').value),
+                boneless: Number(document.getElementById('rate_boneless').value),
+                liver: Number(document.getElementById('rate_liver').value),
+                lolipop: Number(document.getElementById('rate_lolipop').value),
+                garden: Number(document.getElementById('rate_garden').value)
+            }).then(() => alert("Rates successfully updated!"));
+        }
+
+        function renderCoinsTable() {
+            let tbody = document.getElementById('coinsTableBody');
+            tbody.innerHTML = "";
+
+            let searchVal = document.getElementById('coinSearchInput').value.toLowerCase().trim();
+            let keys = Object.keys(cachedCoinsData);
+
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No customer loyalty data found.</td></tr>`;
+                return;
+            }
+
+            let count = 0;
+            keys.forEach(phone => {
+                let item = cachedCoinsData[phone];
+                let name = item.name || "Customer";
+                let coins = item.coins || 0;
+                let targetReachedTime = item.targetReachedTime;
+
+                if (searchVal && !name.toLowerCase().includes(searchVal) && !phone.includes(searchVal)) {
+                    return;
+                }
+                count++;
+
+                let statusBadge = "🟢 Active";
+                if (coins >= 120) {
+                    if (targetReachedTime) {
+                        let elapsedMs = new Date().getTime() - targetReachedTime;
+                        let daysLeft = Math.ceil((15 * 24 * 60 * 60 * 1000 - elapsedMs) / (1000 * 60 * 60 * 24));
+                        if (daysLeft > 0) {
+                            statusBadge = `<span class="badge-timer">⚠️ Expires in ${daysLeft} Days</span>`;
+                        } else {
+                            statusBadge = `<span style="color: red; font-weight:700;">Expired</span>`;
+                        }
+                    } else {
+                        statusBadge = `<span class="badge-timer">🎁 120 Coins Reached (15 Days Timer)</span>`;
+                    }
+                }
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${name}</b></td>
+                    <td>${phone}</td>
+                    <td><b style="color: #d97706;">🪙 ${coins}</b></td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button onclick="editCoinsManual('${phone}', ${coins})" style="background:#059669; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No matching customer found.</td></tr>`;
+            }
+        }
+
+        function editCoinsManual(phone, currentCoins) {
+            let newCoins = prompt(`Edit Coins for Phone: ${phone}`, currentCoins);
+            if (newCoins !== null && !isNaN(newCoins)) {
+                let parsedCoins = parseInt(newCoins, 10);
+                window.update(window.ref(window.db, 'customer_coins/' + phone), {
+                    coins: parsedCoins
+                }).then(() => alert("Coins updated!"));
+            }
         }
 
         function renderAdminOrders() {
@@ -350,50 +433,16 @@
 
             let selectedDate = document.getElementById('orderDateFilter').value;
 
-            cachedOrders.sort((a, b) => {
-                let timeA = a.timestamp || new Date(a.Date || a.date || a.Time || a.time || 0).getTime();
-                let timeB = b.timestamp || new Date(b.Date || b.date || b.Time || b.time || 0).getTime();
-                return timeB - timeA; 
-            });
+            cachedOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             let filteredOrders = cachedOrders.filter(order => {
-                let orderDateStr = String(order.date || order.Date || "");
-                let orderTimeStr = String(order.time || order.Time || "");
-
-                let extractedDate = "";
-                if (orderDateStr && orderDateStr.length >= 10) {
-                    extractedDate = orderDateStr.substring(0, 10);
-                } else if (orderTimeStr && orderTimeStr.includes("-")) {
-                    extractedDate = orderTimeStr.substring(0, 10);
-                } else if (order.timestamp) {
-                    let d = new Date(order.timestamp);
-                    let year = d.getFullYear();
-                    let month = String(d.getMonth() + 1).padStart(2, '0');
-                    let day = String(d.getDate()).padStart(2, '0');
-                    extractedDate = `${year}-${month}-${day}`;
-                } else {
-                    let d = new Date();
-                    let year = d.getFullYear();
-                    let month = String(d.getMonth() + 1).padStart(2, '0');
-                    let day = String(d.getDate()).padStart(2, '0');
-                    extractedDate = `${year}-${month}-${day}`;
-                }
-
-                if (isDateFilteringActive) {
-                    return extractedDate === selectedDate;
-                }
-                return true;
+                if (!isDateFilteringActive) return true;
+                let extractedDate = order.date || (order.timestamp ? new Date(order.timestamp).toISOString().split('T')[0] : "");
+                return extractedDate === selectedDate;
             });
 
-            let activeOrders = filteredOrders.filter(ord => {
-                let st = String(ord.Status || ord.status || "").trim().toLowerCase();
-                return st !== 'completed';
-            });
-            
-            let completedOrders = filteredOrders.filter(ord => {
-                let st = String(ord.Status || ord.status || "").trim().toLowerCase();
-                return st === 'completed';
-            });
+            let activeOrders = filteredOrders.filter(ord => String(ord.Status || ord.status || "").toLowerCase() !== 'completed');
+            let completedOrders = filteredOrders.filter(ord => String(ord.Status || ord.status || "").toLowerCase() === 'completed');
 
             document.getElementById('orderCountBadge').innerText = `${activeOrders.length} Pending Orders`;
             document.getElementById('completedCountBadge').innerText = completedOrders.length;
@@ -405,17 +454,13 @@
             if (activeOrders.length === 0) {
                 container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 20px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Abhi koi naya pending order nahi hai.</p>`;
             } else {
-                activeOrders.forEach(order => {
-                    container.appendChild(createOrderCardElement(order));
-                });
+                activeOrders.forEach(order => container.appendChild(createOrderCardElement(order)));
             }
 
             if (completedOrders.length === 0) {
                 completedContainer.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 12.5px; padding: 15px 0; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">Koi completed order nahi hai.</p>`;
             } else {
-                completedOrders.forEach(order => {
-                    completedContainer.appendChild(createOrderCardElement(order));
-                });
+                completedOrders.forEach(order => completedContainer.appendChild(createOrderCardElement(order)));
             }
         }
 
@@ -425,64 +470,26 @@
             let phone = order.phone || order.Phone || "";
             let items = order.items || order.Items || "";
             let amount = order.totalAmount || order.TotalAmount || 0;
-            let rawDate = order.date || order.Date || "";
-            let rawTime = order.time || order.Time || "";
-            let address = order.address || order.Address || "Pickup";
             let orderType = order.orderType || order.OrderType || "Pickup";
             let status = order.status || order.Status || 'Pending';
             let firebaseKey = order.firebaseKey;
 
-            let formattedTime = rawTime;
-            if (rawTime && rawTime.includes(":")) {
-                let parts = rawTime.split(":");
-                let h = parseInt(parts[0], 10);
-                let m = parts[1];
-                if (!isNaN(h)) {
-                    let ampm = h >= 12 ? 'PM' : 'AM';
-                    h = h % 12;
-                    h = h ? h : 12;
-                    formattedTime = `${h}:${m} ${ampm}`;
-                }
-            }
-
-            let displayDateTime = formattedTime;
-            if (order.timestamp) {
-                let d = new Date(order.timestamp);
-                let year = d.getFullYear();
-                let month = String(d.getMonth() + 1).padStart(2, '0');
-                let day = String(d.getDate()).padStart(2, '0');
-                let datePart = `${year}-${month}-${day}`;
-                displayDateTime = `${datePart} (${formattedTime})`;
-            } else if (rawDate) {
-                displayDateTime = `${rawDate} (${formattedTime})`;
-            } else {
-                let d = new Date();
-                let year = d.getFullYear();
-                let month = String(d.getMonth() + 1).padStart(2, '0');
-                let day = String(d.getDate()).padStart(2, '0');
-                displayDateTime = `${year}-${month}-${day} (${formattedTime})`;
-            }
-
-            let isCompleted = String(status).trim().toLowerCase() === 'completed';
+            let earnedCoins = calculateCoinsForOrder(items);
+            let isCompleted = String(status).toLowerCase() === 'completed';
 
             let card = document.createElement('div');
             card.className = 'order-card';
             
-            let actionsHTML = '';
-            if (isCompleted) {
-                actionsHTML = `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 6px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 12px; margin-top: 8px;">✅ Order Completed</div>`;
-            } else {
-                actionsHTML = `
-                    <div class="order-actions">
-                        <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
-                        <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
-                        <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
-                    </div>
-                    <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center! Please collect it. 🍗')}" target="_blank" class="btn-whatsapp">
-                        💬 Send Ready Msg to WhatsApp
-                    </a>
-                `;
-            }
+            let actionsHTML = isCompleted ? 
+                `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 6px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 12px; margin-top: 8px;">✅ Order Completed (+${earnedCoins} Coins Credited)</div>` :
+                `<div class="order-actions">
+                    <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
+                    <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
+                    <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
+                </div>
+                <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center!')}" target="_blank" class="btn-whatsapp">
+                    💬 Send Ready Msg to WhatsApp
+                </a>`;
 
             card.innerHTML = `
                 <div class="order-header">
@@ -492,8 +499,7 @@
                 <div class="order-details">
                     <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
                     <p><b>Items:</b> ${items}</p>
-                    <p><b>Total Amount:</b> ₹${amount} | <b>Date/Time:</b> ${displayDateTime}</p>
-                    <p><b>Address:</b> ${address}</p>
+                    <p><b>Total Amount:</b> ₹${amount} | <b style="color:#d97706;">Coins Reward:</b> +${earnedCoins} Coins</p>
                     <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
                 </div>
                 ${actionsHTML}
@@ -501,33 +507,63 @@
             return card;
         }
 
-      function updateOrderStatus(firebaseKey, statusText, token) {
-    // Agar status 'Done' button se aa raha hai toh hum 'Completed' save karenge
-    let finalStatus = (statusText === 'Done' || statusText === 'Completed') ? 'Completed' : statusText;
-
-    window.update(window.ref(window.db, 'orders/' + firebaseKey), {
-        Status: finalStatus,
-        status: finalStatus // Dono keys handle karne ke liye
-    }).then(() => {
-        console.log(`Order #${token} updated to ${finalStatus}`);
-        
-        if (finalStatus === 'Completed') {
-            let orderObj = cachedOrders.find(o => o.firebaseKey === firebaseKey);
-            if (orderObj) {
-                let cName = orderObj.customerName || orderObj.CustomerName || "Customer";
-                let phone = orderObj.phone || orderObj.Phone || "";
-                let amount = orderObj.totalAmount || orderObj.TotalAmount || 0;
-                
-                let msg = `Hello ${cName}, thank you for ordering from Kadir Chicken Center! Aapka order #${token} (Total: ₹${amount}) successfully complete ho gaya hai. Dobar visit karein! 🍗`;
-                let whatsappUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
-                
-                window.open(whatsappUrl, '_blank');
+        function calculateCoinsForOrder(itemsStr) {
+            let totalCoins = 0;
+            if (typeof itemsStr === 'string') {
+                let matches = itemsStr.match(/([\d.]+)(kg|g)/gi);
+                if (matches) {
+                    matches.forEach(m => {
+                        let val = parseFloat(m);
+                        if (m.includes('g') && !m.includes('kg')) val = val / 1000;
+                        totalCoins += Math.round(val * 4);
+                    });
+                } else {
+                    totalCoins = 4;
+                }
             }
+            return totalCoins > 0 ? totalCoins : 4;
         }
-    }).catch(err => {
-        console.log("Error updating order status:", err);
-    });
-}
+
+        function updateOrderStatus(firebaseKey, statusText, token) {
+            let finalStatus = (statusText === 'Done' || statusText === 'Completed') ? 'Completed' : statusText;
+
+            window.update(window.ref(window.db, 'orders/' + firebaseKey), { Status: finalStatus, status: finalStatus }).then(() => {
+                if (finalStatus === 'Completed') {
+                    let orderObj = cachedOrders.find(o => o.firebaseKey === firebaseKey);
+                    if (orderObj) {
+                        let phone = orderObj.phone || orderObj.Phone || "";
+                        let cName = orderObj.customerName || orderObj.CustomerName || "Customer";
+                        let items = orderObj.items || orderObj.Items || "";
+                        
+                        // Sync Coins to Cloud Firebase Customer Table
+                        if (phone) {
+                            let earnedCoins = calculateCoinsForOrder(items);
+                            let userCoinRef = window.ref(window.db, 'customer_coins/' + phone);
+                            
+                            window.onValue(userCoinRef, (snap) => {
+                                let cData = snap.val() || { coins: 0 };
+                                let newCoins = (cData.coins || 0) + earnedCoins;
+                                
+                                let updateObj = {
+                                    name: cName,
+                                    coins: newCoins,
+                                    lastUpdated: new Date().getTime()
+                                };
+
+                                if (newCoins >= 120 && !cData.targetReachedTime) {
+                                    updateObj.targetReachedTime = new Date().getTime();
+                                }
+
+                                window.update(userCoinRef, updateObj);
+                            }, { onlyOnce: true });
+                        }
+
+                        let msg = `Hello ${cName}, thank you for ordering from Kadir Chicken Center! Aapka order #${token} complete ho gaya hai! 🍗`;
+                        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
