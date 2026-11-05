@@ -19,7 +19,7 @@
         @media (min-width: 768px) { .main-layout { display: grid; grid-template-columns: 360px 1fr; align-items: start; } }
         .sidebar-panel, .content-panel { display: flex; flex-direction: column; gap: 14px; }
         .card { background: #ffffff; border-radius: 14px; padding: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
-        .sound-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .sound-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .sound-banner p { margin: 0; font-size: 12px; font-weight: 600; color: #1e40af; }
         .sound-btn { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
         .control-card { display: flex; flex-direction: column; gap: 10px; }
@@ -54,10 +54,9 @@
         .btn-accept { background: #059669; }
         .btn-ready { background: #d97706; }
         .btn-done { background: #64748b; }
+        .btn-delete { background: #ef4444; flex: unset; padding: 8px 12px; }
         .btn-whatsapp { background: #25d366; color: white; width: 100%; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; }
         .refresh-btn-hdr { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-        
-        /* Table Styles for Coins */
         .coins-table-container { overflow-x: auto; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -65,34 +64,8 @@
         tr:hover { background: #f1f5f9; }
         .badge-timer { background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; border: 1px solid #fde68a; }
     </style>
-
-    <!-- Firebase SDK (Modular via CDN) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBHo7LhTdeTfBLRFXfZLy4GqiE1k8JEW00",
-            authDomain: "kcc-customerorders.firebaseapp.com",
-            databaseURL: "https://kcc-customerorders-default-rtdb.firebaseio.com",
-            projectId: "kcc-customerorders",
-            storageBucket: "kcc-customerorders.firebasestorage.app",
-            messagingSenderId: "472690478588",
-            appId: "1:472690478588:web:d788778c1a3943a65ef679",
-            measurementId: "G-L8QPB9MTLK"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        window.db = db;
-        window.ref = ref;
-        window.onValue = onValue;
-        window.update = update;
-        window.set = set;
-    </script>
 </head>
-<body onload="initDashboard()">
+<body>
 
     <header>
         <div class="header-left">
@@ -109,9 +82,13 @@
 
     <div class="main-layout">
         <div class="sidebar-panel">
-            <div class="sound-banner" id="soundBanner">
-                <p>🔊 Marathi Voice Alert Enable karein</p>
+            <div class="sound-banner" id="soundBanner" style="display: flex;">
+                <p>🔊 Enable English Voice Alerts</p>
                 <button class="sound-btn" onclick="enableAudioAlerts()">Enable Audio</button>
+            </div>
+
+            <div class="card" style="padding: 10px; text-align: center; background: #f0fdf4; border: 1px dashed #34d399;">
+                <button onclick="testLastOrderAudioDemo()" style="background: #059669; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%;">🔊 Test Audio Alert (Demo)</button>
             </div>
 
             <div class="card control-card">
@@ -123,7 +100,6 @@
                     <button id="shopToggleBtn" class="toggle-btn btn-open" onclick="toggleShopStatus()">🟢 OPEN</button>
                 </div>
                 
-                <!-- Shop Closed Custom Note Input -->
                 <div id="closedNoteBoxContainer" style="margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
                     <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Shop Close Note / Message (Customer App):</label>
                     <input type="text" id="shopClosedReasonInput" placeholder="Jaise: Dukan shaam 5 baje khulegi..." style="width: 100%; padding: 7px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; margin-bottom: 6px;">
@@ -157,10 +133,16 @@
         </div>
 
         <div class="content-panel">
-            <!-- Customer Coins Loyalty Table Section -->
-            <div class="card">
+            <div style="margin-bottom: 4px;">
+                <button onclick="toggleCoinsManagerSection()" id="coinsToggleBtn" style="width: 100%; background: #0f172a; color: white; border: none; padding: 10px 14px; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+                    <span>🪙 Customer Loyalty Coins Manager</span>
+                    <span id="coinsToggleIcon">▼ Open Manager</span>
+                </button>
+            </div>
+
+            <div class="card" id="coinsManagerCard" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-                    <h3 style="margin: 0; font-size: 15px; color: #1e293b;">🪙 Customer Loyalty Coins Manager</h3>
+                    <h3 style="margin: 0; font-size: 15px; color: #1e293b;">🪙 Customer Coins List</h3>
                     <input type="text" id="coinSearchInput" onkeyup="renderCoinsTable()" placeholder="🔍 Search Name or Phone..." style="padding: 6px 10px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; width: 180px;">
                 </div>
                 <div class="coins-table-container">
@@ -191,13 +173,11 @@
                 <div id="orderCountBadge" style="font-size: 12px; background: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700;">0 Pending Orders</div>
             </div>
 
-            <!-- Active / Live Orders Section -->
             <h3 style="margin: 4px 0 0 2px; font-size: 15px; color: #1e293b;">⚡ Live / Pending Orders</h3>
             <div id="adminOrdersContainer">
-                <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Connecting to Firebase Database...</p>
+                <p style="text-align: center; color: #64748b; font-size: 13px; padding: 30px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0;">Loading Firebase Database...</p>
             </div>
 
-            <!-- Completed Orders Section -->
             <div style="margin-top: 15px;">
                 <button onclick="toggleCompletedSection()" id="toggleCompletedBtn" style="width: 100%; background: #e2e8f0; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; color: #334155;">
                     <span>📁 Completed Orders History (<span id="completedCountBadge">0</span>)</span>
@@ -208,7 +188,25 @@
         </div>
     </div>
 
-    <script>
+    <!-- Firebase SDK Script Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHo7LhTdeTfBLRFXfZLy4GqiE1k8JEW00",
+            authDomain: "kcc-customerorders.firebaseapp.com",
+            databaseURL: "https://kcc-customerorders-default-rtdb.firebaseio.com",
+            projectId: "kcc-customerorders",
+            storageBucket: "kcc-customerorders.firebasestorage.app",
+            messagingSenderId: "472690478588",
+            appId: "1:472690478588:web:d788778c1a3943a65ef679",
+            measurementId: "G-L8QPB9MTLK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
         let audioEnabled = false;
         let cachedOrders = [];
         let cachedCoinsData = {};
@@ -216,62 +214,156 @@
         let currentShopNote = "";
         let isDateFilteringActive = false; 
         let showCompletedSection = false;
+        let showCoinsManager = false;
+        let audioCtx = null;
 
         function initDashboard() {
             let today = new Date().toISOString().split('T')[0];
             let dateInput = document.getElementById('orderDateFilter');
-            if (!dateInput.value) dateInput.value = today;
+            if (dateInput && !dateInput.value) dateInput.value = today;
 
-            let checkInterval = setInterval(() => {
-                if (window.db) {
-                    clearInterval(checkInterval);
-                    loadAdminData();
-                }
-            }, 300);
+            if (localStorage.getItem('kcc_audio_permission') === 'granted') {
+                audioEnabled = true;
+                let banner = document.getElementById('soundBanner');
+                if (banner) banner.style.display = 'none';
+            }
+
+            window.addEventListener('click', () => {
+                unlockAudioContext();
+            }, { once: true });
+
+            loadAdminData();
         }
 
-        function enableAudioAlerts() {
-            audioEnabled = true;
-            document.getElementById('soundBanner').style.display = 'none';
-            if ('speechSynthesis' in window) {
-                let testUtterance = new SpeechSynthesisUtterance("ऑडिओ अलर्ट सुरू झाले आहेत!");
-                testUtterance.lang = 'mr-IN';
-                window.speechSynthesis.speak(testUtterance);
+        function unlockAudioContext() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                console.log("AudioContext error", e);
             }
         }
 
-        function toggleDateFilterMode() {
-            isDateFilteringActive = !isDateFilteringActive;
-            let btn = document.getElementById('filterModeBtn');
-            btn.style.background = isDateFilteringActive ? "#059669" : "#0284c7";
-            btn.innerText = isDateFilteringActive ? "🔍 Filter by Date (On)" : "🔍 Filter by Date (Off)";
-            renderAdminOrders();
+        window.enableAudioAlerts = function() {
+            audioEnabled = true;
+            localStorage.setItem('kcc_audio_permission', 'granted');
+            let banner = document.getElementById('soundBanner');
+            if (banner) banner.style.display = 'none';
+            unlockAudioContext();
+            playBeepSound();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let testUtterance = new SpeechSynthesisUtterance("Audio alerts are now enabled!");
+                testUtterance.lang = 'en-US';
+                window.speechSynthesis.speak(testUtterance);
+            }
+        };
+
+        function playBeepSound() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                for (let i = 0; i < 3; i++) {
+                    let osc = audioCtx.createOscillator();
+                    let gainNode = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + (i * 0.25));
+                    gainNode.gain.setValueAtTime(1, audioCtx.currentTime + (i * 0.25));
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (i * 0.25) + 0.2);
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + (i * 0.25));
+                    osc.stop(audioCtx.currentTime + (i * 0.25) + 0.2);
+                }
+            } catch (e) {
+                console.log("Beep error:", e);
+            }
         }
 
-        function toggleCompletedSection() {
-            showCompletedSection = !showCompletedSection;
-            let container = document.getElementById('completedOrdersContainer');
-            let toggleIcon = document.getElementById('toggleIcon');
-            container.style.display = showCompletedSection ? 'grid' : 'none';
-            toggleIcon.innerText = showCompletedSection ? '▲ Hide' : '▼ View';
-        }
-
-        function deleteAllOrders() {
-            if (confirm("Kya aap sach mein saare orders delete karna chahte hain?")) {
-                window.set(window.ref(window.db, 'orders'), null).then(() => {
-                    alert("Saare orders delete kar diye gaye hain!");
-                    cachedOrders = [];
-                    renderAdminOrders();
+        // Generic audio alert (Customer name functions completely removed)
+        function triggerOrderAlert() {
+            playBeepSound();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let spokenText = `New order received! Please check your dashboard.`;
+                let utterance = new SpeechSynthesisUtterance(spokenText);
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification("ChickenMGR - New Order Received! 🍗", {
+                    body: `Kadir Chicken Center received a new order!`,
+                    icon: "logo mgr.png"
                 });
             }
         }
 
-        function loadAdminData() {
-            if (!window.db) return;
+        window.testLastOrderAudioDemo = function() {
+            triggerOrderAlert();
+        };
 
-            // Settings Listener
-            const settingsRef = window.ref(window.db, 'settings');
-            window.onValue(settingsRef, (snapshot) => {
+        window.toggleCoinsManagerSection = function() {
+            showCoinsManager = !showCoinsManager;
+            let card = document.getElementById('coinsManagerCard');
+            let icon = document.getElementById('coinsToggleIcon');
+            if (card) card.style.display = showCoinsManager ? 'block' : 'none';
+            if (icon) icon.innerText = showCoinsManager ? '▲ Close Manager' : '▼ Open Manager';
+        };
+
+        window.toggleDateFilterMode = function() {
+            isDateFilteringActive = !isDateFilteringActive;
+            let btn = document.getElementById('filterModeBtn');
+            if (btn) {
+                btn.style.background = isDateFilteringActive ? "#059669" : "#0284c7";
+                btn.innerText = isDateFilteringActive ? "🔍 Filter by Date (On)" : "🔍 Filter by Date (Off)";
+            }
+            renderAdminOrders();
+        };
+
+        window.toggleCompletedSection = function() {
+            showCompletedSection = !showCompletedSection;
+            let container = document.getElementById('completedOrdersContainer');
+            let toggleIcon = document.getElementById('toggleIcon');
+            if (container) container.style.display = showCompletedSection ? 'grid' : 'none';
+            if (toggleIcon) toggleIcon.innerText = showCompletedSection ? '▲ Hide' : '▼ View';
+        };
+
+        window.deleteAllOrders = function() {
+            if (confirm("Are you sure you want to delete all orders?")) {
+                set(ref(db, 'orders'), null).then(() => {
+                    alert("All orders have been deleted successfully!");
+                    cachedOrders = [];
+                    renderAdminOrders();
+                });
+            }
+        };
+
+        window.deleteSingleOrder = function(firebaseKey, token) {
+            if (confirm(`Are you sure you want to delete order #${token}?`)) {
+                remove(ref(db, 'orders/' + firebaseKey)).then(() => {
+                    alert(`Order #${token} deleted successfully!`);
+                }).catch((error) => {
+                    alert("Error deleting order: " + error.message);
+                });
+            }
+        };
+
+        window.loadAdminData = function() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+
+            onValue(ref(db, 'settings'), (snapshot) => {
                 const settings = snapshot.val();
                 if (settings) {
                     currentShopOpen = settings.shopOpen !== undefined ? settings.shopOpen : true;
@@ -282,73 +374,73 @@
                     let noteInput = document.getElementById('shopClosedReasonInput');
 
                     if (currentShopOpen === false || currentShopOpen === "false") {
-                        toggleBtn.className = "toggle-btn btn-closed";
-                        toggleBtn.innerText = "🔴 CLOSED";
-                        subtext.innerText = "Dukan abhi band hai";
+                        if (toggleBtn) { toggleBtn.className = "toggle-btn btn-closed"; toggleBtn.innerText = "🔴 CLOSED"; }
+                        if (subtext) subtext.innerText = "Dukan abhi band hai";
                     } else {
-                        toggleBtn.className = "toggle-btn btn-open";
-                        toggleBtn.innerText = "🟢 OPEN";
-                        subtext.innerText = "Dukan chalu hai";
+                        if (toggleBtn) { toggleBtn.className = "toggle-btn btn-open"; toggleBtn.innerText = "🟢 OPEN"; }
+                        if (subtext) subtext.innerText = "Dukan chalu hai";
                     }
 
-                    if (!noteInput.value) {
+                    if (noteInput && document.activeElement !== noteInput) {
                         noteInput.value = currentShopNote;
                     }
 
                     if (settings.rates) {
-                        document.getElementById('rate_curry').value = settings.rates.curry || 240;
-                        document.getElementById('rate_leg').value = settings.rates.leg || 280;
-                        document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
-                        document.getElementById('rate_liver').value = settings.rates.liver || 200;
-                        document.getElementById('rate_lolipop').value = settings.rates.lolipop || 300;
-                        document.getElementById('rate_garden').value = settings.rates.garden || 260;
+                        if (document.getElementById('rate_curry')) document.getElementById('rate_curry').value = settings.rates.curry || 240;
+                        if (document.getElementById('rate_leg')) document.getElementById('rate_leg').value = settings.rates.leg || 280;
+                        if (document.getElementById('rate_boneless')) document.getElementById('rate_boneless').value = settings.rates.boneless || 340;
+                        if (document.getElementById('rate_liver')) document.getElementById('rate_liver').value = settings.rates.liver || 200;
+                        if (document.getElementById('rate_lolipop')) document.getElementById('rate_lolipop').value = settings.rates.lolipop || 300;
+                        if (document.getElementById('rate_garden')) document.getElementById('rate_garden').value = settings.rates.garden || 260;
                     }
                 }
             });
 
-            // Orders Listener
-            const ordersRef = window.ref(window.db, 'orders');
-            window.onValue(ordersRef, (snapshot) => {
+            onValue(ref(db, 'orders'), (snapshot) => {
                 const data = snapshot.val();
                 let ordersArray = [];
                 if (data) {
                     ordersArray = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
                 }
 
-                if (audioEnabled && ordersArray.length > cachedOrders.length && cachedOrders.length > 0) {
-                    if ('speechSynthesis' in window) {
-                        let utterance = new SpeechSynthesisUtterance("नवीन ऑर्डर आली आहे!");
-                        utterance.lang = 'mr-IN';
-                        window.speechSynthesis.speak(utterance);
-                    }
+                if (audioEnabled && cachedOrders.length > 0 && ordersArray.length > cachedOrders.length) {
+                    triggerOrderAlert();
                 }
 
                 cachedOrders = ordersArray;
                 renderAdminOrders();
             });
 
-            // Customer Coins Listener
-            const coinsRef = window.ref(window.db, 'customer_coins');
-            window.onValue(coinsRef, (snapshot) => {
+            onValue(ref(db, 'customer_coins'), (snapshot) => {
                 cachedCoinsData = snapshot.val() || {};
                 renderCoinsTable();
             });
-        }
+        };
 
-        function toggleShopStatus() {
+        window.toggleShopStatus = function() {
             currentShopOpen = !currentShopOpen;
-            window.update(window.ref(window.db, 'settings'), { shopOpen: currentShopOpen });
-        }
+            update(ref(db, 'settings'), { shopOpen: currentShopOpen }).then(() => {
+                let toggleBtn = document.getElementById('shopToggleBtn');
+                let subtext = document.getElementById('shopStatusSubtext');
+                if (currentShopOpen) {
+                    if (toggleBtn) { toggleBtn.className = "toggle-btn btn-open"; toggleBtn.innerText = "🟢 OPEN"; }
+                    if (subtext) subtext.innerText = "Dukan chalu hai";
+                } else {
+                    if (toggleBtn) { toggleBtn.className = "toggle-btn btn-closed"; toggleBtn.innerText = "🔴 CLOSED"; }
+                    if (subtext) subtext.innerText = "Dukan abhi band hai";
+                }
+            });
+        };
 
-        function saveShopCloseNote() {
+        window.saveShopCloseNote = function() {
             let noteVal = document.getElementById('shopClosedReasonInput').value.trim();
-            window.update(window.ref(window.db, 'settings'), { shopNote: noteVal }).then(() => {
+            update(ref(db, 'settings'), { shopNote: noteVal }).then(() => {
                 alert("Shop Close note updated successfully!");
             });
-        }
+        };
 
-        function saveProductRates() {
-            window.update(window.ref(window.db, 'settings/rates'), {
+        window.saveProductRates = function() {
+            update(ref(db, 'settings/rates'), {
                 curry: Number(document.getElementById('rate_curry').value),
                 leg: Number(document.getElementById('rate_leg').value),
                 boneless: Number(document.getElementById('rate_boneless').value),
@@ -356,13 +448,15 @@
                 lolipop: Number(document.getElementById('rate_lolipop').value),
                 garden: Number(document.getElementById('rate_garden').value)
             }).then(() => alert("Rates successfully updated!"));
-        }
+        };
 
-        function renderCoinsTable() {
+        window.renderCoinsTable = function() {
             let tbody = document.getElementById('coinsTableBody');
+            if (!tbody) return;
             tbody.innerHTML = "";
 
-            let searchVal = document.getElementById('coinSearchInput').value.toLowerCase().trim();
+            let searchInput = document.getElementById('coinSearchInput');
+            let searchVal = searchInput ? searchInput.value.toLowerCase().trim() : "";
             let keys = Object.keys(cachedCoinsData);
 
             if (keys.length === 0) {
@@ -413,25 +507,28 @@
             if (count === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No matching customer found.</td></tr>`;
             }
-        }
+        };
 
-        function editCoinsManual(phone, currentCoins) {
+        window.editCoinsManual = function(phone, currentCoins) {
             let newCoins = prompt(`Edit Coins for Phone: ${phone}`, currentCoins);
             if (newCoins !== null && !isNaN(newCoins)) {
                 let parsedCoins = parseInt(newCoins, 10);
-                window.update(window.ref(window.db, 'customer_coins/' + phone), {
+                update(ref(db, 'customer_coins/' + phone), {
                     coins: parsedCoins
                 }).then(() => alert("Coins updated!"));
             }
-        }
+        };
 
-        function renderAdminOrders() {
+        window.renderAdminOrders = function() {
             let container = document.getElementById('adminOrdersContainer');
             let completedContainer = document.getElementById('completedOrdersContainer');
+            if (!container || !completedContainer) return;
+
             container.innerHTML = "";
             completedContainer.innerHTML = "";
 
-            let selectedDate = document.getElementById('orderDateFilter').value;
+            let dateInput = document.getElementById('orderDateFilter');
+            let selectedDate = dateInput ? dateInput.value : "";
 
             cachedOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
@@ -444,12 +541,18 @@
             let activeOrders = filteredOrders.filter(ord => String(ord.Status || ord.status || "").toLowerCase() !== 'completed');
             let completedOrders = filteredOrders.filter(ord => String(ord.Status || ord.status || "").toLowerCase() === 'completed');
 
-            document.getElementById('orderCountBadge').innerText = `${activeOrders.length} Pending Orders`;
-            document.getElementById('completedCountBadge').innerText = completedOrders.length;
-            document.getElementById('statTotalOrders').innerText = filteredOrders.length;
+            let orderCountBadge = document.getElementById('orderCountBadge');
+            if (orderCountBadge) orderCountBadge.innerText = `${activeOrders.length} Pending Orders`;
+            
+            let completedCountBadge = document.getElementById('completedCountBadge');
+            if (completedCountBadge) completedCountBadge.innerText = completedOrders.length;
+            
+            let statTotalOrders = document.getElementById('statTotalOrders');
+            if (statTotalOrders) statTotalOrders.innerText = filteredOrders.length;
 
             let totalRev = filteredOrders.reduce((sum, ord) => sum + (parseFloat(ord.TotalAmount || ord.totalAmount) || 0), 0);
-            document.getElementById('statTotalRevenue').innerText = `₹${totalRev}`;
+            let statTotalRevenue = document.getElementById('statTotalRevenue');
+            if (statTotalRevenue) statTotalRevenue.innerText = `₹${totalRev}`;
 
             if (activeOrders.length === 0) {
                 container.innerHTML = `<p style="text-align: center; color: #64748b; font-size: 13px; padding: 20px 0; background: white; border-radius: 12px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">Abhi koi naya pending order nahi hai.</p>`;
@@ -462,7 +565,7 @@
             } else {
                 completedOrders.forEach(order => completedContainer.appendChild(createOrderCardElement(order)));
             }
-        }
+        };
 
         function createOrderCardElement(order) {
             let token = order.token || order.Token || "MB-000";
@@ -473,6 +576,8 @@
             let orderType = order.orderType || order.OrderType || "Pickup";
             let status = order.status || order.Status || 'Pending';
             let firebaseKey = order.firebaseKey;
+            
+            let custAddress = order.address || order.deliveryAddress || order.custAddress || order.Address || "";
 
             let earnedCoins = calculateCoinsForOrder(items);
             let isCompleted = String(status).toLowerCase() === 'completed';
@@ -480,12 +585,18 @@
             let card = document.createElement('div');
             card.className = 'order-card';
             
+            let addressHTML = custAddress ? `<p><b>📍 Address:</b> <span style="color: #0284c7; font-weight:600;">${custAddress}</span></p>` : '';
+
             let actionsHTML = isCompleted ? 
-                `<div style="text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 6px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 12px; margin-top: 8px;">✅ Order Completed (+${earnedCoins} Coins Credited)</div>` :
+                `<div style="display: flex; gap: 6px; align-items: center; margin-top: 8px;">
+                    <div style="flex: 1; text-align: center; background: #ecfdf5; border: 1px solid #34d399; padding: 6px; border-radius: 8px; color: #065f46; font-weight: 700; font-size: 12px;">✅ Completed (+${earnedCoins} Coins Credited)</div>
+                    <button class="action-btn btn-delete" onclick="deleteSingleOrder('${firebaseKey}', '${token}')" title="Delete Order">🗑️ Delete</button>
+                </div>` :
                 `<div class="order-actions">
                     <button class="action-btn btn-accept" onclick="updateOrderStatus('${firebaseKey}', 'Accepted', '${token}')">Accept</button>
                     <button class="action-btn btn-ready" onclick="updateOrderStatus('${firebaseKey}', 'Ready 🚀', '${token}')">Ready</button>
                     <button class="action-btn btn-done" onclick="updateOrderStatus('${firebaseKey}', 'Completed', '${token}')">Done</button>
+                    <button class="action-btn btn-delete" onclick="deleteSingleOrder('${firebaseKey}', '${token}')" title="Delete Order">🗑️</button>
                 </div>
                 <a href="https://wa.me/91${phone}?text=${encodeURIComponent('Hello ' + cName + ', your order #' + token + ' is ready at Kadir Chicken Center!')}" target="_blank" class="btn-whatsapp">
                     💬 Send Ready Msg to WhatsApp
@@ -498,6 +609,7 @@
                 </div>
                 <div class="order-details">
                     <p><b>Naam:</b> ${cName} | 📞 <a href="tel:${phone}" style="color: #059669; text-decoration: none; font-weight:700;">${phone}</a></p>
+                    ${addressHTML}
                     <p><b>Items:</b> ${items}</p>
                     <p><b>Total Amount:</b> ₹${amount} | <b style="color:#d97706;">Coins Reward:</b> +${earnedCoins} Coins</p>
                     <p><b>Status:</b> <span style="color: ${isCompleted ? '#059669' : '#d97706'}; font-weight: 700;">${status}</span></p>
@@ -507,6 +619,7 @@
             return card;
         }
 
+        // 250g = 1 coin rule (0.250kg = 1, 0.500kg = 2, 1kg = 4)
         function calculateCoinsForOrder(itemsStr) {
             let totalCoins = 0;
             if (typeof itemsStr === 'string') {
@@ -514,20 +627,22 @@
                 if (matches) {
                     matches.forEach(m => {
                         let val = parseFloat(m);
-                        if (m.includes('g') && !m.includes('kg')) val = val / 1000;
+                        if (m.includes('g') && !m.includes('kg')) {
+                            val = val / 1000;
+                        }
                         totalCoins += Math.round(val * 4);
                     });
                 } else {
-                    totalCoins = 4;
+                    totalCoins = 1;
                 }
             }
-            return totalCoins > 0 ? totalCoins : 4;
+            return totalCoins > 0 ? totalCoins : 1;
         }
 
-        function updateOrderStatus(firebaseKey, statusText, token) {
+        window.updateOrderStatus = function(firebaseKey, statusText, token) {
             let finalStatus = (statusText === 'Done' || statusText === 'Completed') ? 'Completed' : statusText;
 
-            window.update(window.ref(window.db, 'orders/' + firebaseKey), { Status: finalStatus, status: finalStatus }).then(() => {
+            update(ref(db, 'orders/' + firebaseKey), { Status: finalStatus, status: finalStatus }).then(() => {
                 if (finalStatus === 'Completed') {
                     let orderObj = cachedOrders.find(o => o.firebaseKey === firebaseKey);
                     if (orderObj) {
@@ -535,18 +650,19 @@
                         let cName = orderObj.customerName || orderObj.CustomerName || "Customer";
                         let items = orderObj.items || orderObj.Items || "";
                         
-                        // Sync Coins to Cloud Firebase Customer Table
                         if (phone) {
                             let earnedCoins = calculateCoinsForOrder(items);
-                            let userCoinRef = window.ref(window.db, 'customer_coins/' + phone);
+                            let userCoinRef = ref(db, 'customer_coins/' + phone);
                             
-                            window.onValue(userCoinRef, (snap) => {
+                            onValue(userCoinRef, (snap) => {
                                 let cData = snap.val() || { coins: 0 };
-                                let newCoins = (cData.coins || 0) + earnedCoins;
+                                let oldCoins = cData.coins || 0;
+                                let newCoins = oldCoins + earnedCoins;
                                 
                                 let updateObj = {
                                     name: cName,
                                     coins: newCoins,
+                                    lastEarnedCoins: earnedCoins,
                                     lastUpdated: new Date().getTime()
                                 };
 
@@ -554,7 +670,7 @@
                                     updateObj.targetReachedTime = new Date().getTime();
                                 }
 
-                                window.update(userCoinRef, updateObj);
+                                update(userCoinRef, updateObj);
                             }, { onlyOnce: true });
                         }
 
@@ -563,7 +679,9 @@
                     }
                 }
             });
-        }
+        };
+
+        initDashboard();
     </script>
 </body>
 </html>
